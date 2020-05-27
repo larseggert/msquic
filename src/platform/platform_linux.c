@@ -334,7 +334,9 @@ QuicEventInitialize(
 
     QUIC_FRE_ASSERT(pthread_mutex_init(&EventObj->Mutex, NULL) == 0);
     QUIC_FRE_ASSERT(pthread_condattr_init(&Attr) == 0);
+#ifndef __APPLE__
     QUIC_FRE_ASSERT(pthread_condattr_setclock(&Attr, CLOCK_MONOTONIC) == 0);
+#endif    
     QUIC_FRE_ASSERT(pthread_cond_init(&EventObj->Cond, &Attr) == 0);
     QUIC_FRE_ASSERT(pthread_condattr_destroy(&Attr) == 0);
 
@@ -551,7 +553,11 @@ QuicProcCurrentNumber(
     void
     )
 {
+#ifndef __APPLE__    
     return (uint32_t)sched_getcpu();
+#else
+    return 0; // FIXME
+#endif
 }
 
 QUIC_STATUS
@@ -912,6 +918,7 @@ QuicThreadCreate(
         QUIC_TEL_ASSERT(Config->IdealProcessor < 64);
         // TODO - Set Linux equivalent of ideal processor.
         if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
+#ifndef __APPLE__
             cpu_set_t CpuSet;
             CPU_ZERO(&CpuSet);
             CPU_SET(Config->IdealProcessor, &CpuSet);
@@ -921,6 +928,9 @@ QuicThreadCreate(
                     "[ lib] ERROR, %s.",
                     "pthread_attr_setaffinity_np failed");
             }
+#else
+// FIXME
+#endif            
         } else {
             // TODO - Set Linux equivalent of NUMA affinity.
         }
@@ -975,7 +985,11 @@ QuicCurThreadID(
     )
 {
     QUIC_STATIC_ASSERT(sizeof(pid_t) <= sizeof(uint32_t), "PID size exceeds the expected size");
+#ifndef __APPLE__
     return syscall(__NR_gettid);
+#else
+    return 0; // FIXME
+#endif        
 }
 
 void

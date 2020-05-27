@@ -15,12 +15,19 @@ Environment:
 
 #define _GNU_SOURCE
 #include "platform_internal.h"
-#include <sys/epoll.h>
-#include <sys/eventfd.h>
 #include <inttypes.h>
-#include <linux/in6.h>
 #include <arpa/inet.h>
 #include "quic_platform_dispatch.h"
+
+#ifndef __APPLE__
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
+#include <linux/in6.h>
+#else
+#include <sys/event.h>
+#define SOCK_NONBLOCK 0
+#define SOCK_CLOEXEC 0
+#endif
 
 QUIC_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t)), "(sizeof(QUIC_BUFFER.Length) == sizeof(size_t) must be TRUE.");
 QUIC_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)), "(sizeof(QUIC_BUFFER.Buffer) == sizeof(void*) must be TRUE.");
@@ -363,7 +370,11 @@ QuicProcessorContextInitialize(
         sizeof(QUIC_DATAPATH_SEND_CONTEXT),
         &ProcContext->SendContextPool);
 
+#ifndef __APPLE__
     EpollFd = epoll_create1(EPOLL_CLOEXEC);
+#else
+    EpollFd = kqueue();
+#endif
     if (EpollFd == INVALID_SOCKET_FD) {
         Status = errno;
         QuicTraceEvent(
@@ -374,7 +385,11 @@ QuicProcessorContextInitialize(
         goto Exit;
     }
 
+#ifndef __APPLE__
     EventFd = eventfd(0, EFD_CLOEXEC);
+#else
+    // FIXME
+#endif
     if (EventFd == INVALID_SOCKET_FD) {
         Status = errno;
         QuicTraceEvent(
@@ -385,6 +400,7 @@ QuicProcessorContextInitialize(
         goto Exit;
     }
 
+#ifndef __APPLE__
     struct epoll_event EvtFdEpEvt = {
         .events = EPOLLIN,
         .data = {
@@ -393,6 +409,9 @@ QuicProcessorContextInitialize(
     };
 
     Ret = epoll_ctl(EpollFd, EPOLL_CTL_ADD, EventFd, &EvtFdEpEvt);
+#else
+    // FIXME
+#endif
     if (Ret != 0) {
         Status = errno;
         QuicTraceEvent(
@@ -437,7 +456,11 @@ Exit:
 
     if (QUIC_FAILED(Status)) {
         if (EventFdAdded) {
+#ifndef __APPLE__
             epoll_ctl(EpollFd, EPOLL_CTL_DEL, EventFd, NULL);
+#else
+    // FIXME
+#endif
         }
         if (EventFd != INVALID_SOCKET_FD) {
             close(EventFd);
@@ -458,12 +481,16 @@ QuicProcessorContextUninitialize(
     _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
+#ifndef __APPLE__
     const eventfd_t Value = 1;
     eventfd_write(ProcContext->EventFd, Value);
     QuicThreadWait(&ProcContext->EpollWaitThread);
     QuicThreadDelete(&ProcContext->EpollWaitThread);
 
     epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, ProcContext->EventFd, NULL);
+#else
+    // FIXME
+#endif
     close(ProcContext->EventFd);
     close(ProcContext->EpollFd);
 
@@ -755,7 +782,11 @@ QuicSocketContextInitialize(
         SocketContext->EventContexts[i] = i;
     }
 
+#ifndef __APPLE__
     SocketContext->CleanupFd = eventfd(0, EFD_CLOEXEC);
+#else
+    // FIXME
+#endif
     if (SocketContext->CleanupFd == INVALID_SOCKET_FD) {
         Status = errno;
         QuicTraceEvent(
@@ -767,6 +798,7 @@ QuicSocketContextInitialize(
         goto Exit;
     }
 
+#ifndef __APPLE__
     struct epoll_event EvtFdEpEvt = {
         .events = EPOLLIN,
         .data = {
@@ -788,6 +820,9 @@ QuicSocketContextInitialize(
             "epoll_ctl(EPOLL_CTL_ADD) failed");
         goto Exit;
     }
+#else
+    // FIXME
+#endif
 
     //
     // Create datagram socket.
@@ -830,6 +865,7 @@ QuicSocketContextInitialize(
         goto Exit;
     }
 
+#ifndef __APPLE__
     //
     // Set DON'T FRAG socket option.
     //
@@ -906,6 +942,7 @@ QuicSocketContextInitialize(
             "setsockopt(IPV6_RECVPKTINFO) failed");
         goto Exit;
     }
+#endif
 
     Option = TRUE;
     Result =
@@ -1051,10 +1088,14 @@ QuicSocketContextUninitialize(
     _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
+#ifndef __APPLE__
     epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
 
     const eventfd_t Value = 1;
     eventfd_write(SocketContext->CleanupFd, Value);
+#else
+    // FIXME
+#endif
 }
 
 void
@@ -1075,8 +1116,12 @@ QuicSocketContextUninitializeComplete(
                 PendingSendLinkage));
     }
 
+#ifndef __APPLE__
     epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
     epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->CleanupFd, NULL);
+#else
+    // FIXME
+#endif
     close(SocketContext->CleanupFd);
     close(SocketContext->SocketFd);
 
@@ -1132,6 +1177,7 @@ QuicSocketContextStartReceive(
         goto Error;
     }
 
+#ifndef __APPLE__
     struct epoll_event SockFdEpEvt = {
         .events = EPOLLIN | EPOLLET,
         .data = {
@@ -1155,6 +1201,9 @@ QuicSocketContextStartReceive(
             "epoll_ctl failed");
         goto Error;
     }
+#else
+    // FIXME
+#endif
 
 Error:
 
@@ -1189,6 +1238,7 @@ QuicSocketContextRecvComplete(
          CMsg != NULL;
          CMsg = CMSG_NXTHDR(&SocketContext->RecvMsgHdr, CMsg)) {
 
+#ifndef __APPLE__
         if (CMsg->cmsg_level == IPPROTO_IPV6 &&
             CMsg->cmsg_type == IPV6_PKTINFO) {
             struct in6_pktinfo* PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
@@ -1201,6 +1251,9 @@ QuicSocketContextRecvComplete(
             FoundLocalAddr = TRUE;
             break;
         }
+#else
+    // FIXME
+#endif
 
         if (CMsg->cmsg_level == IPPROTO_IP && CMsg->cmsg_type == IP_PKTINFO) {
             struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
@@ -1257,6 +1310,7 @@ QuicSocketContextPendSend(
 {
     if (!SocketContext->SendWaiting) {
 
+#ifndef __APPLE__
         struct epoll_event SockFdEpEvt = {
             .events = EPOLLIN | EPOLLOUT | EPOLLET,
             .data = {
@@ -1279,6 +1333,9 @@ QuicSocketContextPendSend(
                 "epoll_ctl failed");
             return errno;
         }
+#else
+    // FIXME
+#endif
 
         if (LocalAddress != NULL) {
             QuicCopyMemory(
@@ -1328,6 +1385,7 @@ QuicSocketContextSendComplete(
 
     if (SocketContext->SendWaiting) {
 
+#ifndef __APPLE__
         struct epoll_event SockFdEpEvt = {
             .events = EPOLLIN | EPOLLET,
             .data = {
@@ -1353,6 +1411,9 @@ QuicSocketContextSendComplete(
         }
 
         SocketContext->SendWaiting = FALSE;
+#else
+    // FIXME
+#endif
     }
 
     while (!QuicListIsEmpty(&SocketContext->PendingSendContextHead)) {
@@ -1404,6 +1465,7 @@ QuicSocketContextProcessEvents(
 
     QUIC_DBG_ASSERT(EventType == QUIC_SOCK_EVENT_SOCKET);
 
+#ifndef __APPLE__
     if (EPOLLERR & Events) {
         int ErrNum = 0;
         socklen_t OptLen = sizeof(ErrNum);
@@ -1472,6 +1534,9 @@ QuicSocketContextProcessEvents(
     if (EPOLLOUT & Events) {
         QuicSocketContextSendComplete(SocketContext, ProcContext);
     }
+#else
+    // FIXME
+#endif
 }
 
 //
@@ -1906,7 +1971,9 @@ QuicDataPathBindingSend(
     struct in6_pktinfo *PktInfo6 = NULL;
     BOOLEAN SendPending = FALSE;
 
+#ifndef __APPLE__
     static_assert(CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
+#endif
     char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo))] = {0};
 
     QUIC_DBG_ASSERT(Binding != NULL && RemoteAddress != NULL && SendContext != NULL);
@@ -2033,6 +2100,7 @@ QuicDataPathBindingSend(
             // TODO: Use Ipv4 instead of Ipv6.
             PktInfo->ipi_ifindex = LocalAddress->Ipv6.sin6_scope_id;
             PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
+#ifndef __APPLE__
         } else {
             Mhdr.msg_control = ControlBuffer;
             Mhdr.msg_controllen = CMSG_SPACE(sizeof(struct in6_pktinfo));
@@ -2045,6 +2113,7 @@ QuicDataPathBindingSend(
             PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
             PktInfo6->ipi6_ifindex = LocalAddress->Ipv6.sin6_scope_id;
             PktInfo6->ipi6_addr = LocalAddress->Ipv6.sin6_addr;
+#endif
         }
 
         SentByteCount = sendmsg(SocketContext->SocketFd, &Mhdr, 0);
@@ -2180,6 +2249,7 @@ QuicDataPathWorkerThread(
     QUIC_DBG_ASSERT(ProcContext != NULL && ProcContext->Datapath != NULL);
 
     const size_t EpollEventCtMax = 16; // TODO: Experiment.
+#ifndef __APPLE__
     struct epoll_event EpollEvents[EpollEventCtMax];
 
     while (!ProcContext->Datapath->Shutdown) {
@@ -2208,6 +2278,9 @@ QuicDataPathWorkerThread(
                 EpollEvents[i].events);
         }
     }
+#else
+    // FIXME
+#endif
 
     return NO_ERROR;
 }

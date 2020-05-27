@@ -62,6 +62,10 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 
 set(CLANG_GCC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value CACHE INTERNAL "")
+if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Darwin")
+    list(APPEND CLANG_GCC_WARNING_FLAGS -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wno-missing-braces -Wno-enum-conversion -Wno-c++11-extensions)
+endif()
+
 set(MSVC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -124,7 +128,11 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
 else()
     # Custom build flags.
-    set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -pthread -Wl,--no-as-needed -ldl")
+    if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Linux")
+        set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -pthread -Wl,--no-as-needed -ldl")
+    elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Darwin")
+        set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions")
+    endif()
 
     #if(QUIC_TLS STREQUAL "x64")
     #    set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -m64")
@@ -168,13 +176,18 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 
 if(QUIC_TLS STREQUAL "openssl")
     # Configure and build OpenSSL.
+    if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Linux")
+        set(OPENSSL_FLAGS linux-x86_64)
+    elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Darwin")
+        set(OPENSSL_FLAGS darwin64-x86_64-cc no-asm no-tests)
+    endif()
     add_custom_command(
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl
         OUTPUT ${QUIC_BUILD_DIR}/openssl/include
         OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.so
         OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl.so
-        COMMAND ./Configure linux-x86_64 enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
-        COMMAND make -j$(nproc)
+        COMMAND ./Configure ${OPENSSL_FLAGS} enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
+        COMMAND make
         COMMAND make install_sw)
     add_custom_target(OpenSSL
         DEPENDS ${QUIC_BUILD_DIR}/openssl/include
