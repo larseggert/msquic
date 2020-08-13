@@ -835,3 +835,90 @@ QuicLogLevelToPriority(
 
     return LOG_DEBUG;
 }
+
+
+void str_replace(char *target, const char *needle, const char *replacement)
+{
+    char buffer[1024] = { 0 };
+    char *insert_point = &buffer[0];
+    const char *tmp = target;
+    size_t needle_len = strlen(needle);
+    size_t repl_len = strlen(replacement);
+
+    while (1) {
+        const char *p = strstr(tmp, needle);
+
+        // walked past last occurrence of needle; copy remaining part
+        if (p == NULL) {
+            strcpy(insert_point, tmp);
+            break;
+        }
+
+        // copy part before needle
+        memcpy(insert_point, tmp, p - tmp);
+        insert_point += p - tmp;
+
+        // copy replacement string
+        memcpy(insert_point, replacement, repl_len);
+        insert_point += repl_len;
+
+        // adjust pointers, move on
+        tmp = p + needle_len;
+    }
+
+    // write altered string back to target
+    strcpy(target, buffer);
+}
+
+
+char * lars_hex2str(const uint8_t * const src,
+               const size_t len_src,
+               char * const dst,
+               const size_t len_dst)
+{
+    static const char hex[] = "0123456789abcdef";
+
+    size_t i;
+    for (i = 0; i < len_src && i * 2 + 1 < len_dst; i++) {
+        dst[i * 2] = hex[(src[i] >> 4) & 0x0f];
+        dst[i * 2 + 1] = hex[src[i] & 0x0f];
+    }
+
+    if (i * 2 + 1 <= len_dst)
+        dst[i * 2] = 0;
+    else {
+        size_t l = len_dst;
+        if (l)
+            dst[--l] = 0;
+        if (l)
+            dst[--l] = '.';
+        if (l)
+            dst[--l] = '.';
+        if (l)
+            dst[--l] = '.';
+    }
+
+    return dst;
+}
+
+int lars_printf(const char * fmt, ...) {
+    char new_fmt[2048];
+    strcpy(new_fmt, fmt);
+
+    str_replace(new_fmt, "%!ADDR!", "%s");
+    str_replace(new_fmt, "%!CID!", "%s");
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wvarargs"
+    va_list ap;
+    va_start(ap, new_fmt);
+#pragma clang diagnostic pop
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+    const int ret = vprintf(new_fmt, ap);
+    putchar('\n');
+#pragma clang diagnostic pop
+    va_end(ap);
+    return ret;
+}
+

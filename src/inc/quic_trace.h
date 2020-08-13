@@ -136,10 +136,23 @@ QuicTraceRundown(
 
 #ifdef QUIC_EVENTS_STUB
 
-#define QuicTraceEventEnabled(Name) FALSE
-#define QuicTraceEvent(Name, Fmt, ...)
+#ifdef __cplusplus
+extern "C"
+#endif
+int lars_printf(const char * fmt, ...);
 
-#define CLOG_BYTEARRAY(Len, Data)
+#ifdef __cplusplus
+extern "C"
+#endif
+char * lars_hex2str(const uint8_t * const src,
+               const size_t len_src,
+               char * const dst,
+               const size_t len_dst);
+
+#define QuicTraceEventEnabled(Name) FALSE
+#define QuicTraceEvent(Name, ...) lars_printf(__VA_ARGS__)
+
+#define CLOG_BYTEARRAY(Len, Data) lars_hex2str((uint8_t*)(Data), (uint8_t)(Len), (char[2048]){""}, 2048)
 
 #endif // QUIC_EVENTS_STUB
 
