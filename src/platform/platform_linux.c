@@ -839,7 +839,7 @@ QuicLogLevelToPriority(
 
 void str_replace(char *target, const char *needle, const char *replacement)
 {
-    char buffer[1024] = { 0 };
+    char buffer[4096] = "";
     char *insert_point = &buffer[0];
     const char *tmp = target;
     size_t needle_len = strlen(needle);
@@ -877,7 +877,6 @@ char * lars_hex2str(const uint8_t * const src,
                const size_t len_dst)
 {
     static const char hex[] = "0123456789abcdef";
-
     size_t i;
     for (i = 0; i < len_src && i * 2 + 1 < len_dst; i++) {
         dst[i * 2] = hex[(src[i] >> 4) & 0x0f];
@@ -902,16 +901,19 @@ char * lars_hex2str(const uint8_t * const src,
 }
 
 int lars_printf(const char * fmt, ...) {
-    char new_fmt[2048];
-    strcpy(new_fmt, fmt);
+#if 1
+    char * const new_fmt = strdup(fmt);
 
     str_replace(new_fmt, "%!ADDR!", "%s");
     str_replace(new_fmt, "%!CID!", "%s");
 #pragma clang diagnostic push
+#pragma GCC diagnostic push
 #pragma clang diagnostic ignored "-Wvarargs"
+#pragma GCC diagnostic ignored "-Wvarargs"
     va_list ap;
     va_start(ap, new_fmt);
 #pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-nonliteral"
@@ -920,5 +922,8 @@ int lars_printf(const char * fmt, ...) {
 #pragma clang diagnostic pop
     va_end(ap);
     return ret;
+#else
+    return 0;
+#endif
 }
 
