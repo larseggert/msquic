@@ -20,7 +20,7 @@ Environment:
 #error "Must be included from quic_platform.h"
 #endif
 
-#if !defined(CX_PLATFORM_LINUX) && !defined(CX_PLATFORM_DARWIN)
+#if !defined(CX_PLATFORM_LINUX) && !defined(CX_PLATFORM_DARWIN) && !defined(CX_PLATFORM_RIOT)
 #error "Incorrectly including Posix Platform Header from unsupported platfrom"
 #endif
 
@@ -29,6 +29,15 @@ Environment:
 #include <sys/socket.h>
 #include <netinet/in.h>
 #define ETIME   ETIMEDOUT
+#endif
+
+#if defined(CX_PLATFORM_RIOT)
+typedef unsigned int sbintime_t;
+typedef unsigned int u_int;
+#include <sys/types.h>
+#include <time.h>
+#define INADDR_LOOPBACK 0 // TODO
+#include <arpa/inet.h>
 #endif
 
 #include <stdlib.h>
@@ -41,8 +50,10 @@ Environment:
 #include <inttypes.h>
 #include <stddef.h>
 #include <stdalign.h>
+#if !defined(CX_PLATFORM_RIOT)
 #include <netdb.h>
 #include <netinet/ip.h>
+#endif
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -50,7 +61,9 @@ Environment:
 #include <stdbool.h>
 #include <pthread.h>
 #include <errno.h>
+#if !defined(CX_PLATFORM_RIOT)
 #include <sys/syscall.h>
+#endif
 #include <sys/time.h>
 #include "quic_sal_stub.h"
 

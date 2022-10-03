@@ -20,19 +20,25 @@ Environment:
 #define _MSQUIC_POSIX_
 
 #include <stdlib.h>
+#if !defined(CX_PLATFORM_RIOT)
 #include <stdio.h>
+#endif
 #include <stdint.h>
+#if !defined(CX_PLATFORM_RIOT)
 #include <sys/types.h>
+#endif
 #include <string.h>
 #include <assert.h>
 #include <inttypes.h>
 #include <stddef.h>
+#if !defined(CX_PLATFORM_RIOT)
 #include <netdb.h>
 #include <netinet/ip.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#endif
 #include <errno.h>
 #include "quic_sal_stub.h"
 
