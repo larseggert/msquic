@@ -31,18 +31,14 @@ Environment:
 #define ETIME   ETIMEDOUT
 #endif
 
-#if defined(CX_PLATFORM_RIOT)
-typedef unsigned int sbintime_t;
-typedef unsigned int u_int;
-#include <sys/types.h>
-#include <time.h>
-#define INADDR_LOOPBACK 0 // TODO
-#include <arpa/inet.h>
-#endif
-
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdarg.h>
+#if defined(CX_PLATFORM_RIOT)
+// FIXME: work around various toolchain bugs - is there a better fix?
+#define _TIME_H_
+#define _SYS_TIME_H_
+#endif
 #include <stdio.h>
 #include <sys/types.h>
 #include <string.h>
@@ -59,13 +55,53 @@ typedef unsigned int u_int;
 #include <netinet/in.h>
 #include "msquic_posix.h"
 #include <stdbool.h>
+#if !defined(CX_PLATFORM_RIOT)
 #include <pthread.h>
+#endif
 #include <errno.h>
 #if !defined(CX_PLATFORM_RIOT)
 #include <sys/syscall.h>
 #endif
 #include <sys/time.h>
 #include "quic_sal_stub.h"
+
+#if defined(CX_PLATFORM_RIOT)
+#include "cond.h"
+#include "ztimer.h"
+
+#define pthread_t int // thread_t
+
+#define pthread_cond_t cond_t
+#define pthread_cond_init(cond, attr) (cond_init(cond), 0)
+#define pthread_cond_destroy(cond) 0
+#define pthread_cond_wait(cond, mutex) (cond_wait(cond, mutex), 0)
+#define pthread_cond_broadcast(cond) (cond_broadcast(cond), 0)
+#define pthread_cond_timedwait(cond, mutex, t)                                 \
+  (cond_wait(cond, mutex), 0) // FIXME
+
+#define pthread_condattr_t int
+#define pthread_condattr_init(attr) (*attr = 0)
+#define pthread_condattr_destroy(attr) (*attr = 0)
+
+#define pthread_mutex_t mutex_t
+#define pthread_mutex_lock(mutex) (mutex_lock(mutex), 0)
+#define pthread_mutex_unlock(mutex) (mutex_unlock(mutex), 0)
+#define pthread_mutex_init(mutex, attr) (mutex_init(mutex), 0)
+#define pthread_mutex_destroy(mutex) 0
+
+#define pthread_mutexattr_t int
+#define pthread_mutexattr_init(attr) (*attr = 0)
+#define pthread_mutexattr_destroy(attr) (*attr = 0)
+#define pthread_mutexattr_settype(attr, type) (*attr = 0)
+
+#define pthread_rwlock_t int
+#define pthread_rwlock_init(lock, attr) (*lock = 0)
+#define pthread_rwlock_destroy(lock) (*lock = 0)
+#define pthread_rwlock_rdlock(lock) (*lock = 0)
+#define pthread_rwlock_unlock(lock) (*lock = 0)
+#define pthread_rwlock_wrlock(lock) (*lock = 0)
+
+#endif
 
 #if defined(__cplusplus)
 extern "C" {
@@ -483,6 +519,9 @@ CxPlatGetAllocFailDenominator(
     );
 #endif
 
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 void
 CxPlatPoolInitialize(
@@ -503,6 +542,9 @@ CxPlatPoolInitialize(
     UNREFERENCED_PARAMETER(IsPaged);
 }
 
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 void
 CxPlatPoolUninitialize(
@@ -522,6 +564,9 @@ CxPlatPoolUninitialize(
     CxPlatLockUninitialize(&Pool->Lock);
 }
 
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 void*
 CxPlatPoolAlloc(
@@ -551,6 +596,9 @@ CxPlatPoolAlloc(
     return Entry;
 }
 
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 void
 CxPlatPoolFree(
@@ -643,16 +691,23 @@ CxPlatGetAbsoluteTime(
 #define CxPlatTimeMs32() (uint32_t)CxPlatTimeMs64()
 #define CxPlatTimeUs64ToPlat(x) (x)
 
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 int64_t
 CxPlatTimeEpochMs64(
     void
     )
 {
+#ifdef CX_PLATFORM_RIOT
+    return ztimer_now(ZTIMER_MSEC);
+#else
     struct timeval tv;
     CxPlatZeroMemory(&tv, sizeof(tv));
     gettimeofday(&tv, NULL);
     return S_TO_MS(tv.tv_sec) + US_TO_MS(tv.tv_usec);
+#endif
 }
 
 inline
@@ -747,6 +802,9 @@ typedef struct CXPLAT_EVENT {
 
 } CXPLAT_EVENT;
 
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 void
 CxPlatEventInitialize(
@@ -776,12 +834,11 @@ CxPlatEventInitialize(
     CXPLAT_FRE_ASSERT(Result == 0);
 }
 
-inline
-void
-CxPlatInternalEventUninitialize(
-    _Inout_ CXPLAT_EVENT* Event
-    )
-{
+inline void CxPlatInternalEventUninitialize(
+#ifdef CX_PLATFORM_RIOT
+    __attribute__((unused))
+#endif
+    _Inout_ CXPLAT_EVENT *Event) {
     int Result;
 
     Result = pthread_cond_destroy(&Event->Cond);
@@ -790,6 +847,9 @@ CxPlatInternalEventUninitialize(
     CXPLAT_FRE_ASSERT(Result == 0);
 }
 
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 void
 CxPlatInternalEventSet(
@@ -816,6 +876,9 @@ CxPlatInternalEventSet(
     CXPLAT_FRE_ASSERT(Result == 0);
 }
 
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 void
 CxPlatInternalEventReset(
@@ -831,6 +894,9 @@ CxPlatInternalEventReset(
     CXPLAT_FRE_ASSERT(Result == 0);
 }
 
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 void
 CxPlatInternalEventWaitForever(
@@ -860,6 +926,9 @@ CxPlatInternalEventWaitForever(
     CXPLAT_FRE_ASSERT(Result == 0);
 }
 
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 BOOLEAN
 CxPlatInternalEventWaitWithTimeout(
@@ -1216,6 +1285,49 @@ CxPlatCqeUserData(
 {
     return (void*)cqe->udata;
 }
+
+#elif CX_PLATFORM_RIOT
+
+typedef int CXPLAT_EVENTQ;
+typedef int CXPLAT_CQE;
+
+inline BOOLEAN CxPlatEventQInitialize(__attribute__((unused))
+                                      _Out_ CXPLAT_EVENTQ *queue) {
+    return TRUE;
+}
+
+inline void CxPlatEventQCleanup(__attribute__((unused))
+                                _In_ CXPLAT_EVENTQ *queue) {}
+
+inline BOOLEAN _CxPlatEventQEnqueue(__attribute__((unused))
+                                    _In_ CXPLAT_EVENTQ *queue,
+                                    __attribute__((unused))
+                                    _In_opt_ void *user_data) {
+    return TRUE;
+}
+
+#define CxPlatEventQEnqueue(queue, sqe, user_data) _CxPlatEventQEnqueue(queue, user_data)
+
+inline uint32_t CxPlatEventQDequeue(__attribute__((unused))
+                                    _In_ CXPLAT_EVENTQ *queue,
+                                    __attribute__((unused))
+                                    _Out_ CXPLAT_CQE *events,
+                                    __attribute__((unused)) _In_ uint32_t count,
+                                    __attribute__((unused))
+                                    _In_ uint32_t wait_time // milliseconds
+) {
+    return 0;
+}
+
+inline void CxPlatEventQReturn(__attribute__((unused))
+                               _In_ CXPLAT_EVENTQ *queue,
+                               __attribute__((unused)) _In_ uint32_t count) {}
+
+inline void *CxPlatCqeUserData(__attribute__((unused))
+                               _In_ const CXPLAT_CQE *cqe) {
+    return 0;
+}
+
 
 #else
 

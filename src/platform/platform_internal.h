@@ -102,7 +102,7 @@ typedef struct CX_PLATFORM {
 
 } CX_PLATFORM;
 
-#elif defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
+#elif defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN) || defined(CX_PLATFORM_RIOT)
 
 typedef struct CX_PLATFORM {
 

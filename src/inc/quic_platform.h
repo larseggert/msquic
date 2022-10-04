@@ -12,6 +12,7 @@ Supported Environments:
     Windows user mode
     Windows kernel mode
     Linux user mode
+    RIOT
 
 --*/
 

@@ -555,9 +555,7 @@ else() #!WIN32
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO ${CMAKE_C_FLAGS_RELWITHDEBINFO})
     set(CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 
-    if (NOT CX_PLATFORM STREQUAL "riot")
-        list(APPEND QUIC_COMMON_FLAGS -fms-extensions -fPIC)
-    endif()
+    list(APPEND QUIC_COMMON_FLAGS -fms-extensions -fPIC)
     if (CX_PLATFORM STREQUAL "darwin")
         list(APPEND QUIC_COMMON_DEFINES CX_PLATFORM_DARWIN)
         list(APPEND QUIC_COMMON_FLAGS -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wmissing-field-initializers)

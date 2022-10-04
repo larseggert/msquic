@@ -20,13 +20,9 @@ Environment:
 #define _MSQUIC_POSIX_
 
 #include <stdlib.h>
-#if !defined(CX_PLATFORM_RIOT)
 #include <stdio.h>
-#endif
 #include <stdint.h>
-#if !defined(CX_PLATFORM_RIOT)
 #include <sys/types.h>
-#endif
 #include <string.h>
 #include <assert.h>
 #include <inttypes.h>
@@ -34,9 +30,11 @@ Environment:
 #if !defined(CX_PLATFORM_RIOT)
 #include <netdb.h>
 #include <netinet/ip.h>
+#endif
 #include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#if !defined(CX_PLATFORM_RIOT)
 #include <netdb.h>
 #endif
 #include <errno.h>
@@ -94,6 +92,14 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 // 'int' value. There are static asserts to ensure that QUIC_STATUS type is
 // large enough for this purpose.
 //
+
+#if defined(CX_PLATFORM_RIOT)
+
+#endif
+
+#ifndef INADDR_LOOPBACK
+#define INADDR_LOOPBACK 0x7f000001 // 127.0.0.1; undefined on RIOT
+#endif
 
 #ifndef ESTRPIPE // undefined on macOS
 #define ESTRPIPE 86
@@ -295,6 +301,9 @@ QuicAddrSetFamily(
     Addr->Ip.sa_family = Family;
 }
 
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 uint16_t
 QuicAddrGetPort(
@@ -308,6 +317,9 @@ QuicAddrGetPort(
     }
 }
 
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 void
 QuicAddrSetPort(
@@ -338,6 +350,9 @@ QuicAddrIncrement(
     }
 }
 
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 void
 QuicAddrSetToLoopback(
@@ -393,6 +408,9 @@ QuicAddrIsWildCard(
     }
 }
 
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 BOOLEAN
 QuicAddr4FromString(
@@ -431,6 +449,9 @@ QuicAddr4FromString(
     return TRUE;
 }
 
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 BOOLEAN
 QuicAddr6FromString(
@@ -465,6 +486,9 @@ QuicAddr6FromString(
     return TRUE;
 }
 
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 BOOLEAN
 QuicAddrFromString(
@@ -486,6 +510,9 @@ typedef struct QUIC_ADDR_STR {
     char Address[64];
 } QUIC_ADDR_STR;
 
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 BOOLEAN
 QuicAddrToString(

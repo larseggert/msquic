@@ -24,7 +24,7 @@ if (NOT MSVC AND QUIC_ENABLE_SANITIZERS)
     target_link_libraries(base_link INTERFACE -fsanitize=address,leak,undefined,alignment)
 endif()
 
-if (NOT MSVC AND NOT APPLE AND NOT ANDROID)
+if (NOT MSVC AND NOT APPLE AND NOT ANDROID AND NOT RIOT)
     find_library(ATOMIC NAMES atomic libatomic.so.1)
     if (ATOMIC)
         message(STATUS "Found libatomic: ${ATOMIC}")

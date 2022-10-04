@@ -452,6 +452,9 @@ QuicBindingSend(
 //
 // Decrypts the retry token.
 //
+#ifdef CX_PLATFORM_RIOT
+static
+#endif
 inline
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
