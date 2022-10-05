@@ -40,6 +40,10 @@ Environment:
 #include <errno.h>
 #include "quic_sal_stub.h"
 
+#if defined(CX_PLATFORM_RIOT)
+#include <strings.h>
+#endif
+
 #ifdef __cplusplus
 extern "C++" {
 template <size_t S> struct _ENUM_FLAG_INTEGER_FOR_SIZE;

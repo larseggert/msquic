@@ -70,6 +70,7 @@ Environment:
 #include "ztimer.h"
 
 #define pthread_t int // thread_t
+#define pthread_join(thread, val) 0
 
 #define pthread_cond_t cond_t
 #define pthread_cond_init(cond, attr) (cond_init(cond), 0)
@@ -1291,40 +1292,40 @@ CxPlatCqeUserData(
 typedef int CXPLAT_EVENTQ;
 typedef int CXPLAT_CQE;
 
-inline BOOLEAN CxPlatEventQInitialize(__attribute__((unused))
-                                      _Out_ CXPLAT_EVENTQ *queue) {
+static inline BOOLEAN CxPlatEventQInitialize(__attribute__((unused))
+                                             _Out_ CXPLAT_EVENTQ *queue) {
     return TRUE;
 }
 
-inline void CxPlatEventQCleanup(__attribute__((unused))
-                                _In_ CXPLAT_EVENTQ *queue) {}
+static inline void CxPlatEventQCleanup(__attribute__((unused))
+                                       _In_ CXPLAT_EVENTQ *queue) {}
 
-inline BOOLEAN _CxPlatEventQEnqueue(__attribute__((unused))
-                                    _In_ CXPLAT_EVENTQ *queue,
-                                    __attribute__((unused))
-                                    _In_opt_ void *user_data) {
+static inline BOOLEAN _CxPlatEventQEnqueue(__attribute__((unused))
+                                           _In_ CXPLAT_EVENTQ *queue,
+                                           __attribute__((unused))
+                                           _In_opt_ void *user_data) {
     return TRUE;
 }
 
 #define CxPlatEventQEnqueue(queue, sqe, user_data) _CxPlatEventQEnqueue(queue, user_data)
 
-inline uint32_t CxPlatEventQDequeue(__attribute__((unused))
-                                    _In_ CXPLAT_EVENTQ *queue,
-                                    __attribute__((unused))
-                                    _Out_ CXPLAT_CQE *events,
-                                    __attribute__((unused)) _In_ uint32_t count,
-                                    __attribute__((unused))
-                                    _In_ uint32_t wait_time // milliseconds
+static inline uint32_t
+CxPlatEventQDequeue(__attribute__((unused)) _In_ CXPLAT_EVENTQ *queue,
+                    __attribute__((unused)) _Out_ CXPLAT_CQE *events,
+                    __attribute__((unused)) _In_ uint32_t count,
+                    __attribute__((unused))
+                    _In_ uint32_t wait_time // milliseconds
 ) {
     return 0;
 }
 
-inline void CxPlatEventQReturn(__attribute__((unused))
-                               _In_ CXPLAT_EVENTQ *queue,
-                               __attribute__((unused)) _In_ uint32_t count) {}
+static inline void CxPlatEventQReturn(__attribute__((unused))
+                                      _In_ CXPLAT_EVENTQ *queue,
+                                      __attribute__((unused))
+                                      _In_ uint32_t count) {}
 
-inline void *CxPlatCqeUserData(__attribute__((unused))
-                               _In_ const CXPLAT_CQE *cqe) {
+static inline void *CxPlatCqeUserData(__attribute__((unused))
+                                      _In_ const CXPLAT_CQE *cqe) {
     return 0;
 }
 

@@ -73,6 +73,7 @@ typedef _In_range_(0, QUIC_UINT62_MAX) uint64_t QUIC_UINT62;
 typedef enum QUIC_TLS_PROVIDER {
     QUIC_TLS_PROVIDER_SCHANNEL                  = 0x0000,
     QUIC_TLS_PROVIDER_OPENSSL                   = 0x0001,
+    QUIC_TLS_PROVIDER_RIOT                      = 0x0002,
 } QUIC_TLS_PROVIDER;
 
 typedef enum QUIC_EXECUTION_PROFILE {
