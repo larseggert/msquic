@@ -11,6 +11,8 @@ Abstract:
 
 #include "platform_internal.h"
 
+#if 0
+
 _IRQL_requires_max_(DISPATCH_LEVEL) void CxPlatHashFree(
     _In_opt_ CXPLAT_HASH *Hash) {
   UNREFERENCED_PARAMETER(Hash);
@@ -142,3 +144,4 @@ _IRQL_requires_max_(DISPATCH_LEVEL) QUIC_STATUS CxPlatHpKeyCreate(
   QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
   return Status;
 }
+#endif

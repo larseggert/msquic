@@ -261,6 +261,7 @@ set(PUBLIC_HEADERS
     ../inc/msquic.h
     ../inc/msquic_winuser.h
     ../inc/msquic_posix.h
+    ../inc/msquic_riot.h
     ../inc/quic_sal_stub.h)
 
 install(TARGETS msquic EXPORT msquic DESTINATION lib)

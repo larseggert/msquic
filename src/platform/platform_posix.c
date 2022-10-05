@@ -21,23 +21,15 @@ Environment:
 #include "platform_internal.h"
 #include "quic_platform.h"
 #include "quic_trace.h"
-#if !defined(CX_PLATFORM_RIOT)
 #include <dlfcn.h>
-#endif
 #include <fcntl.h>
 #include <limits.h>
 #include <sched.h>
-#if !defined(CX_PLATFORM_RIOT)
 #include <syslog.h>
-#endif
 #define QUIC_VERSION_ONLY 1
 #include "msquic.ver"
 #ifdef QUIC_CLOG
 #include "platform_posix.c.clog.h"
-#endif
-
-#ifdef CX_PLATFORM_RIOT
-#define O_CLOEXEC 0
 #endif
 
 #define CXPLAT_MAX_LOG_MSG_LEN        1024 // Bytes
@@ -51,9 +43,7 @@ QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 #define LIBRARY_VERSION STR(VER_MAJOR) "." STR(VER_MINOR) "." STR(VER_PATCH)
 
-#if !defined(CX_PLATFORM_RIOT)
 static const char TpLibName[] = "libmsquic.lttng.so." LIBRARY_VERSION;
-#endif
 
 uint32_t CxPlatProcessorCount;
 
@@ -102,7 +92,6 @@ CxPlatSystemLoad(
     void
     )
 {
-#if !defined(CX_PLATFORM_RIOT)
 #if defined(CX_PLATFORM_DARWIN)
     //
     // arm64 macOS has no way to get the current proc, so treat as single core.
@@ -189,7 +178,7 @@ CxPlatSystemLoad(
     CXPLAT_FREE(ProviderFullPath, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
 Exit:
-#endif
+
     QuicTraceLogInfo(
         PosixLoaded,
         "[ dso] Loaded");
@@ -241,7 +230,7 @@ CxPlatInitialize(
         PosixInitialized,
         "[ dso] Initialized (AvailMem = %llu bytes)",
         CxPlatTotalMemory);
-#endif
+
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -250,14 +239,12 @@ CxPlatUninitialize(
     void
     )
 {
-#if !defined(CX_PLATFORM_RIOT)
     CxPlatWorkersUninit();
     CxPlatCryptUninitialize();
     close(RandomFd);
     QuicTraceLogInfo(
         PosixUninitialized,
         "[ dso] Uninitialized");
-#endif
 }
 
 void*
@@ -327,14 +314,14 @@ CxPlatRefIncrementNonZero(
     for (;;) {
         CXPLAT_REF_COUNT NewValue = OldValue + Bias;
 
-        if (NewValue > (int32_t)Bias) {
+        if (NewValue > Bias) {
             if(__atomic_compare_exchange_n(RefCount, &OldValue, NewValue, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)) {
                 return TRUE;
             }
             continue;
         }
 
-        if (NewValue == (int32_t)Bias) {
+        if (NewValue == Bias) {
             return FALSE;
         }
 
@@ -438,15 +425,11 @@ CxPlatGetTimerResolution(
     void
     )
 {
-#if defined(CX_PLATFORM_RIOT)
-    return 0;
-#else
     struct timespec Res = {0};
     int ErrorCode = clock_getres(CLOCK_MONOTONIC, &Res);
     CXPLAT_DBG_ASSERT(ErrorCode == 0);
     UNREFERENCED_PARAMETER(ErrorCode);
     return CxPlatTimespecToUs(&Res);
-#endif
 }
 
 uint64_t
@@ -454,15 +437,11 @@ CxPlatTimeUs64(
     void
     )
 {
-#if defined(CX_PLATFORM_RIOT)
-    return ztimer_now(ZTIMER_USEC); // FIXME: ZTIMER_USEC will, on most platforms, prevent low-power sleep modes.
-#else
     struct timespec CurrTime = {0};
     int ErrorCode = clock_gettime(CLOCK_MONOTONIC, &CurrTime);
     CXPLAT_DBG_ASSERT(ErrorCode == 0);
     UNREFERENCED_PARAMETER(ErrorCode);
     return CxPlatTimespecToUs(&CurrTime);
-#endif
 }
 
 void
@@ -508,9 +487,6 @@ CxPlatSleep(
     )
 {
     int ErrorCode = 0;
-#if defined(CX_PLATFORM_RIOT)
-    ztimer_sleep(ZTIMER_MSEC, DurationMs);
-#else
     struct timespec TS = {
         .tv_sec = (DurationMs / CXPLAT_MS_PER_SECOND),
         .tv_nsec = (CXPLAT_NANOSEC_PER_MS * (DurationMs % CXPLAT_MS_PER_SECOND))
@@ -518,7 +494,6 @@ CxPlatSleep(
 
     ErrorCode = nanosleep(&TS, &TS);
     CXPLAT_DBG_ASSERT(ErrorCode == 0);
-#endif
     UNREFERENCED_PARAMETER(ErrorCode);
 }
 
@@ -529,7 +504,7 @@ CxPlatProcCurrentNumber(
 {
 #if defined(CX_PLATFORM_LINUX)
     return (uint32_t)sched_getcpu() % CxPlatProcessorCount;
-#elif defined(CX_PLATFORM_DARWIN) || defined(CX_PLATFORM_RIOT)
+#elif defined(CX_PLATFORM_DARWIN)
     //
     // arm64 macOS has no way to get the current proc, so treat as single core.
     // Intel macOS can return incorrect values for CPUID, so treat as single core.
@@ -809,30 +784,6 @@ CxPlatSetCurrentThreadProcessorAffinity(
     return QUIC_STATUS_SUCCESS;
 }
 
-#elif defined(CX_PLATFORM_RIOT)
-
-QUIC_STATUS
-CxPlatThreadCreate(
-    _In_ CXPLAT_THREAD_CONFIG* Config,
-    _Out_ CXPLAT_THREAD* Thread
-    )
-{
-    UNREFERENCED_PARAMETER(Config);
-    UNREFERENCED_PARAMETER(Thread);
-
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    return Status;
-}
-
-QUIC_STATUS
-CxPlatSetCurrentThreadProcessorAffinity(
-    _In_ uint16_t ProcessorIndex
-    )
-{
-    UNREFERENCED_PARAMETER(ProcessorIndex);
-    return QUIC_STATUS_SUCCESS;
-}
-
 #endif // CX_PLATFORM
 
 void
@@ -845,9 +796,6 @@ CxPlatThreadDelete(
 
 void
 CxPlatThreadWait(
-#ifdef CX_PLATFORM_RIOT
-    __attribute__((unused))
-#endif
     _Inout_ CXPLAT_THREAD* Thread
     )
 {
@@ -880,10 +828,7 @@ CxPlatCurThreadID(
     CXPLAT_DBG_ASSERT(Tid <= UINT32_MAX);
     return (CXPLAT_THREAD_ID)Tid;
 
-#elif defined(CX_PLATFORM_RIOT)
-    return 0;
-
-#endif
+#endif // CX_PLATFORM_DARWIN
 }
 
 void

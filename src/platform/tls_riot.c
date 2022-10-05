@@ -11,6 +11,8 @@ Abstract:
 
 #include "platform_internal.h"
 
+#if 0
+
 uint16_t CxPlatTlsTPHeaderSize = 0;
 
 _IRQL_requires_max_(DISPATCH_LEVEL) QUIC_TLS_PROVIDER
@@ -115,3 +117,5 @@ _IRQL_requires_max_(PASSIVE_LEVEL) QUIC_STATUS
 
   return QUIC_STATUS_SUCCESS;
 }
+
+#endif
