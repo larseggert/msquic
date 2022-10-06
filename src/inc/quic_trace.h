@@ -232,6 +232,17 @@ QuicTraceStubVarArgs(
 
 #ifdef QUIC_LOGS_MANIFEST_ETW
 
+#if defined(CX_PLATFORM_RIOT)
+#define QuicTraceLogErrorEnabled()   TRUE
+#define QuicTraceLogWarningEnabled() TRUE
+#define QuicTraceLogInfoEnabled()    TRUE
+#define QuicTraceLogVerboseEnabled() TRUE
+
+#define LogEtw(EventName, Fmt, ...) printf(Fmt "\n", ##__VA_ARGS__)
+#define LogEtwType(Type, EventName, Ptr, Fmt, ...)                             \
+  printf(Fmt "\n", ##__VA_ARGS__)
+#else
+
 #pragma warning(push) // Don't care about warnings from generated files
 #pragma warning(disable:6001)
 #pragma warning(disable:26451)
@@ -260,6 +271,7 @@ QuicTraceStubVarArgs(
         _snprintf_s(EtwBuffer, sizeof(EtwBuffer), _TRUNCATE, Fmt, ##__VA_ARGS__); \
         EventWriteQuic##Type##Log##EventName##_AssumeEnabled(Ptr, EtwBuffer); \
     }
+#endif //CX_PLATFORM_RIOT
 
 #define QuicTraceLogError(Name, Fmt, ...)               LogEtw(Error, Fmt, ##__VA_ARGS__)
 #define QuicTraceLogWarning(Name, Fmt, ...)             LogEtw(Warning, Fmt, ##__VA_ARGS__)
@@ -271,7 +283,11 @@ QuicTraceStubVarArgs(
 #define QuicTraceLogConnInfo(Name, Ptr, Fmt, ...)       LogEtwType(Conn, Info, Ptr, Fmt, ##__VA_ARGS__)
 #define QuicTraceLogConnVerbose(Name, Ptr, Fmt, ...)    LogEtwType(Conn, Verbose, Ptr, Fmt, ##__VA_ARGS__)
 
+#if defined(CX_PLATFORM_RIOT)
+#define QuicTraceLogStreamVerboseEnabled() TRUE
+#else
 #define QuicTraceLogStreamVerboseEnabled() EventEnabledQuicStreamLogVerbose()
+#endif
 
 #define QuicTraceLogStreamError(Name, Ptr, Fmt, ...)    LogEtwType(Stream, Error, Ptr, Fmt, ##__VA_ARGS__)
 #define QuicTraceLogStreamWarning(Name, Ptr, Fmt, ...)  LogEtwType(Stream, Warning, Ptr, Fmt, ##__VA_ARGS__)
