@@ -345,23 +345,8 @@ typedef struct CXPLAT_POOL {
 #define CXPLAT_POOL_MAXIMUM_DEPTH                                              \
   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
 
-// #if DEBUG
-// typedef struct CXPLAT_POOL_ENTRY {
-//     CXPLAT_SLIST_ENTRY ListHead;
-//     uint64_t SpecialFlag;
-// } CXPLAT_POOL_ENTRY;
-// #define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAAAAAAAAAAull
-
-// int32_t
-// CxPlatGetAllocFailDenominator(
-//     );
-// #endif
-
 inline void CxPlatPoolInitialize(BOOLEAN IsPaged, uint32_t Size, uint32_t Tag,
                                  CXPLAT_POOL *Pool) {
-#if DEBUG
-  CXPLAT_DBG_ASSERT(Size >= sizeof(CXPLAT_POOL_ENTRY));
-#endif
   Pool->Size = Size;
   Pool->Tag = Tag;
   CxPlatLockInitialize(&Pool->Lock);
@@ -385,11 +370,6 @@ inline void CxPlatPoolUninitialize(CXPLAT_POOL *Pool) {
 }
 
 inline void *CxPlatPoolAlloc(CXPLAT_POOL *Pool) {
-#if DEBUG
-  if (CxPlatGetAllocFailDenominator()) {
-    return CxPlatAlloc(Pool->Size, Pool->Tag);
-  }
-#endif
   CxPlatLockAcquire(&Pool->Lock);
   void *Entry = CxPlatListPopEntry(&Pool->ListHead);
   if (Entry != NULL) {
@@ -400,24 +380,10 @@ inline void *CxPlatPoolAlloc(CXPLAT_POOL *Pool) {
   if (Entry == NULL) {
     Entry = CxPlatAlloc(Pool->Size, Pool->Tag);
   }
-#if DEBUG
-  if (Entry != NULL) {
-    ((CXPLAT_POOL_ENTRY *)Entry)->SpecialFlag = 0;
-  }
-#endif
   return Entry;
 }
 
 inline void CxPlatPoolFree(CXPLAT_POOL *Pool, void *Entry) {
-#if DEBUG
-  if (CxPlatGetAllocFailDenominator()) {
-    CxPlatFree(Entry, Pool->Tag);
-    return;
-  }
-  CXPLAT_DBG_ASSERT(((CXPLAT_POOL_ENTRY *)Entry)->SpecialFlag !=
-                    CXPLAT_POOL_SPECIAL_FLAG);
-  ((CXPLAT_POOL_ENTRY *)Entry)->SpecialFlag = CXPLAT_POOL_SPECIAL_FLAG;
-#endif
   if (Pool->ListDepth >= CXPLAT_POOL_MAXIMUM_DEPTH) {
     CxPlatFree(Entry, Pool->Tag);
   } else {
@@ -432,21 +398,19 @@ inline void CxPlatPoolFree(CXPLAT_POOL *Pool, void *Entry) {
 // Reference Count Interface
 //
 
-typedef int8_t CXPLAT_REF_COUNT;
+typedef uint32_t CXPLAT_REF_COUNT;
 
 void CxPlatRefInitialize(CXPLAT_REF_COUNT *RefCount);
 
 void CxPlatRefInitializeEx(CXPLAT_REF_COUNT *RefCount, uint32_t Initial);
 
 void CxPlatRefIncrement(CXPLAT_REF_COUNT *RefCount);
-// #define CxPlatRefIncrement(RefCount) ((*RefCount)++)
 
 BOOLEAN
 CxPlatRefIncrementNonZero(volatile CXPLAT_REF_COUNT *RefCount, uint32_t Bias);
 
 BOOLEAN
 CxPlatRefDecrement(CXPLAT_REF_COUNT *RefCount);
-// #define CxPlatRefDecrement(RefCount) ((*RefCount)--)
 
 #define CxPlatRefUninitialize(RefCount)
 

@@ -11,19 +11,14 @@ Abstract:
 
 #include "platform_internal.h"
 
-#if 0
-
 uint16_t CxPlatTlsTPHeaderSize = 0;
 
-_IRQL_requires_max_(DISPATCH_LEVEL) QUIC_TLS_PROVIDER
-    CxPlatTlsGetProvider(void) {
-  return QUIC_TLS_PROVIDER_RIOT;
-}
+QUIC_TLS_PROVIDER
+CxPlatTlsGetProvider(void) { return QUIC_TLS_PROVIDER_RIOT; }
 
-_IRQL_requires_max_(PASSIVE_LEVEL) QUIC_STATUS
-    CxPlatTlsParamSet(_In_ CXPLAT_TLS *SecConfig, _In_ uint32_t Param,
-                      _In_ uint32_t BufferLength,
-                      _In_reads_bytes_(BufferLength) const void *Buffer) {
+QUIC_STATUS
+CxPlatTlsParamSet(CXPLAT_TLS *SecConfig, uint32_t Param, uint32_t BufferLength,
+                  const void *Buffer) {
   UNREFERENCED_PARAMETER(SecConfig);
   UNREFERENCED_PARAMETER(Param);
   UNREFERENCED_PARAMETER(BufferLength);
@@ -32,10 +27,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL) QUIC_STATUS
   return QUIC_STATUS_NOT_SUPPORTED;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL) QUIC_STATUS
-    CxPlatTlsParamGet(_In_ CXPLAT_TLS *TlsContext, _In_ uint32_t Param,
-                      _Inout_ uint32_t *BufferLength,
-                      _Inout_updates_bytes_opt_(*BufferLength) void *Buffer) {
+QUIC_STATUS
+CxPlatTlsParamGet(CXPLAT_TLS *TlsContext, uint32_t Param,
+                  uint32_t *BufferLength, void *Buffer) {
   UNREFERENCED_PARAMETER(TlsContext);
   UNREFERENCED_PARAMETER(Param);
   UNREFERENCED_PARAMETER(BufferLength);
@@ -45,18 +39,16 @@ _IRQL_requires_max_(PASSIVE_LEVEL) QUIC_STATUS
   return Status;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL) void CxPlatTlsUpdateHkdfLabels(
-    _In_ CXPLAT_TLS *TlsContext, _In_ const QUIC_HKDF_LABELS *const Labels) {
+void CxPlatTlsUpdateHkdfLabels(CXPLAT_TLS *TlsContext,
+                               const QUIC_HKDF_LABELS *const Labels) {
   UNREFERENCED_PARAMETER(TlsContext);
   UNREFERENCED_PARAMETER(Labels);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL) CXPLAT_TLS_RESULT_FLAGS
-    CxPlatTlsProcessData(_In_ CXPLAT_TLS *TlsContext,
-                         _In_ CXPLAT_TLS_DATA_TYPE DataType,
-                         _In_reads_bytes_(*BufferLength) const uint8_t *Buffer,
-                         _Inout_ uint32_t *BufferLength,
-                         _Inout_ CXPLAT_TLS_PROCESS_STATE *State) {
+CXPLAT_TLS_RESULT_FLAGS
+CxPlatTlsProcessData(CXPLAT_TLS *TlsContext, CXPLAT_TLS_DATA_TYPE DataType,
+                     const uint8_t *Buffer, uint32_t *BufferLength,
+                     CXPLAT_TLS_PROCESS_STATE *State) {
   UNREFERENCED_PARAMETER(TlsContext);
   UNREFERENCED_PARAMETER(DataType);
   UNREFERENCED_PARAMETER(Buffer);
@@ -67,10 +59,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL) CXPLAT_TLS_RESULT_FLAGS
   return CXPLAT_TLS_RESULT_ERROR;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL) QUIC_STATUS
-    CxPlatTlsInitialize(_In_ const CXPLAT_TLS_CONFIG *Config,
-                        _Inout_ CXPLAT_TLS_PROCESS_STATE *State,
-                        _Out_ CXPLAT_TLS **NewTlsContext) {
+QUIC_STATUS
+CxPlatTlsInitialize(const CXPLAT_TLS_CONFIG *Config,
+                    CXPLAT_TLS_PROCESS_STATE *State,
+                    CXPLAT_TLS **NewTlsContext) {
   UNREFERENCED_PARAMETER(Config);
   UNREFERENCED_PARAMETER(State);
   UNREFERENCED_PARAMETER(NewTlsContext);
@@ -79,21 +71,19 @@ _IRQL_requires_max_(PASSIVE_LEVEL) QUIC_STATUS
   return Status;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL) void CxPlatTlsUninitialize(
-    _In_opt_ CXPLAT_TLS *TlsContext) {
+void CxPlatTlsUninitialize(CXPLAT_TLS *TlsContext) {
   UNREFERENCED_PARAMETER(TlsContext);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL) void CxPlatTlsSecConfigDelete(__drv_freesMem(
-    ServerConfig) _Frees_ptr_ _In_ CXPLAT_SEC_CONFIG *SecurityConfig) {
+void CxPlatTlsSecConfigDelete(CXPLAT_SEC_CONFIG *SecurityConfig) {
   UNREFERENCED_PARAMETER(SecurityConfig);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL) QUIC_STATUS CxPlatTlsSecConfigCreate(
-    _In_ const QUIC_CREDENTIAL_CONFIG *CredConfig,
-    _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsCredFlags,
-    _In_ const CXPLAT_TLS_CALLBACKS *TlsCallbacks, _In_opt_ void *Context,
-    _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler) {
+QUIC_STATUS CxPlatTlsSecConfigCreate(
+    const QUIC_CREDENTIAL_CONFIG *CredConfig,
+    CXPLAT_TLS_CREDENTIAL_FLAGS TlsCredFlags,
+    const CXPLAT_TLS_CALLBACKS *TlsCallbacks, void *Context,
+    CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler) {
   UNREFERENCED_PARAMETER(CredConfig);
   UNREFERENCED_PARAMETER(TlsCredFlags);
   UNREFERENCED_PARAMETER(TlsCallbacks);
@@ -104,11 +94,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL) QUIC_STATUS CxPlatTlsSecConfigCreate(
   return Status;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL) QUIC_STATUS
-    CxPlatTlsSecConfigSetTicketKeys(_In_ CXPLAT_SEC_CONFIG *SecurityConfig,
-                                    _In_reads_(KeyCount)
-                                        QUIC_TICKET_KEY_CONFIG *KeyConfig,
-                                    _In_ uint8_t KeyCount) {
+QUIC_STATUS
+CxPlatTlsSecConfigSetTicketKeys(CXPLAT_SEC_CONFIG *SecurityConfig,
+                                QUIC_TICKET_KEY_CONFIG *KeyConfig,
+                                uint8_t KeyCount) {
   UNREFERENCED_PARAMETER(SecurityConfig);
   UNREFERENCED_PARAMETER(KeyConfig);
   UNREFERENCED_PARAMETER(KeyCount);
@@ -117,5 +106,3 @@ _IRQL_requires_max_(PASSIVE_LEVEL) QUIC_STATUS
 
   return QUIC_STATUS_SUCCESS;
 }
-
-#endif

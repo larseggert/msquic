@@ -38,7 +38,7 @@ Environment:
 
 // CX_PLATFORM CxPlatform = { NULL };
 // int RandomFd = -1; // Used for reading random numbers.
-QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
+QUIC_TRACE_RUNDOWN_CALLBACK *QuicTraceRundownCallback;
 
 // #define STR_HELPER(x) #x
 // #define STR(x) STR_HELPER(x)
@@ -49,7 +49,7 @@ QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 // uint32_t CxPlatProcessorCount;
 
-// uint64_t CxPlatTotalMemory;
+uint64_t CxPlatTotalMemory;
 
 // #if __APPLE__ || __FreeBSD__
 // long CxPlatCurrentSqe = 0x80000000;
@@ -78,180 +78,109 @@ QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 //     // We want to prevent this routine from being inlined so that we can
 //     // easily detect when our bugcheck conditions have occurred just by
 //     // looking at callstack. However, even after specifying inline attribute,
-//     // it is possible certain optimizations will cause inlining. asm technique
+//     // it is possible certain optimizations will cause inlining. asm
+//     technique
 //     // is the gcc documented way to prevent such optimizations.
 //     //
 //     asm("");
 
 //     //
-//     // abort() sends a SIGABRT signal and it triggers termination and coredump.
+//     // abort() sends a SIGABRT signal and it triggers termination and
+//     coredump.
 //     //
 //     abort();
 // }
 
-void
-CxPlatSystemLoad(
-    void
-    )
-{
-    QuicTraceLogInfo(
-        PosixLoaded,
-        "[ dso] Loaded");
-}
+void CxPlatSystemLoad(void) { QuicTraceLogInfo(PosixLoaded, "[ dso] Loaded"); }
 
-void
-CxPlatSystemUnload(
-    void
-    )
-{
-    QuicTraceLogInfo(
-        PosixUnloaded,
-        "[ dso] Unloaded");
+void CxPlatSystemUnload(void) {
+  QuicTraceLogInfo(PosixUnloaded, "[ dso] Unloaded");
 }
 
 // uint64_t CGroupGetMemoryLimit();
 
-// QUIC_STATUS
-// CxPlatInitialize(
-//     void
-//     )
-// {
-//     RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
-//     if (RandomFd == -1) {
-//         QuicTraceEvent(
-//             LibraryErrorStatus,
-//             "[ lib] ERROR, %u, %s.",
-//             errno,
-//             "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed");
-//         return (QUIC_STATUS)errno;
-//     }
+QUIC_STATUS
+CxPlatInitialize(void) {
+  random_init(0); // FIXME: use a salt
+  CxPlatWorkersInit();
+  CxPlatTotalMemory = UINT64_MAX;
 
-//     CxPlatWorkersInit();
+  QuicTraceLogInfo(PosixInitialized,
+                   "[ dso] Initialized (AvailMem = %llu bytes)",
+                   CxPlatTotalMemory);
 
-//     CxPlatTotalMemory = CGroupGetMemoryLimit();
+  return QUIC_STATUS_SUCCESS;
+}
 
-//     QuicTraceLogInfo(
-//         PosixInitialized,
-//         "[ dso] Initialized (AvailMem = %llu bytes)",
-//         CxPlatTotalMemory);
+void CxPlatUninitialize(void) {
+  CxPlatWorkersUninit();
+  QuicTraceLogInfo(PosixUninitialized, "[ dso] Uninitialized");
+}
 
-//     return QUIC_STATUS_SUCCESS;
-// }
+void *CxPlatAlloc(size_t ByteCount, uint32_t Tag) {
+  UNREFERENCED_PARAMETER(Tag);
+  return malloc(ByteCount);
+}
 
-// void
-// CxPlatUninitialize(
-//     void
-//     )
-// {
-//     CxPlatWorkersUninit();
-//     close(RandomFd);
-//     QuicTraceLogInfo(
-//         PosixUninitialized,
-//         "[ dso] Uninitialized");
-// }
+void CxPlatFree(void *Mem, uint32_t Tag) {
+  UNREFERENCED_PARAMETER(Tag);
+  free(Mem);
+}
 
-// void*
-// CxPlatAlloc(
-//     _In_ size_t ByteCount,
-//     _In_ uint32_t Tag
-//     )
-// {
-//     UNREFERENCED_PARAMETER(Tag);
-// #ifdef DEBUG
-//     uint32_t Rand;
-//     if ((CxPlatform.AllocFailDenominator > 0 && (CxPlatRandom(sizeof(Rand), &Rand), Rand % CxPlatform.AllocFailDenominator) == 1) ||
-//         (CxPlatform.AllocFailDenominator < 0 && InterlockedIncrement(&CxPlatform.AllocCounter) % CxPlatform.AllocFailDenominator == 0)) {
-//         return NULL;
-//     }
-// #endif
-//     return malloc(ByteCount);
-// }
+void CxPlatRefInitialize(CXPLAT_REF_COUNT *RefCount) { *RefCount = 1; }
 
-// void
-// CxPlatFree(
-//     __drv_freesMem(Mem) _Frees_ptr_ void* Mem,
-//     _In_ uint32_t Tag
-//     )
-// {
-//     UNREFERENCED_PARAMETER(Tag);
-//     free(Mem);
-// }
+void CxPlatRefInitializeEx(CXPLAT_REF_COUNT *RefCount, uint32_t Initial) {
+  *RefCount = (int64_t)Initial;
+}
 
-// void
-// CxPlatRefInitialize(
-//     _Inout_ CXPLAT_REF_COUNT* RefCount
-//     )
-// {
-//     *RefCount = 1;
-// }
+void CxPlatRefIncrement(CXPLAT_REF_COUNT *RefCount) {
+  if (__atomic_add_fetch(RefCount, 1, __ATOMIC_SEQ_CST)) {
+    return;
+  }
 
-// void
-// CxPlatRefInitializeEx(
-//     _Inout_ CXPLAT_REF_COUNT* RefCount,
-//     _In_ uint32_t Initial
-//     )
-// {
-//     *RefCount = (int64_t)Initial;
-// }
+  CXPLAT_FRE_ASSERT(FALSE);
+}
 
-// void
-// CxPlatRefIncrement(
-//     _Inout_ CXPLAT_REF_COUNT* RefCount
-//     )
-// {
-//     if (__atomic_add_fetch(RefCount, 1, __ATOMIC_SEQ_CST)) {
-//         return;
-//     }
+BOOLEAN
+CxPlatRefIncrementNonZero(volatile CXPLAT_REF_COUNT *RefCount, uint32_t Bias) {
+  CXPLAT_REF_COUNT OldValue = *RefCount;
 
-//     CXPLAT_FRE_ASSERT(FALSE);
-// }
+  for (;;) {
+    CXPLAT_REF_COUNT NewValue = OldValue + Bias;
 
-// BOOLEAN
-// CxPlatRefIncrementNonZero(
-//     _Inout_ volatile CXPLAT_REF_COUNT* RefCount,
-//     _In_ uint32_t Bias
-//     )
-// {
-//     CXPLAT_REF_COUNT OldValue = *RefCount;
+    if (NewValue > Bias) {
+      if (__atomic_compare_exchange_n(RefCount, &OldValue, NewValue, false,
+                                      __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)) {
+        return TRUE;
+      }
+      continue;
+    }
 
-//     for (;;) {
-//         CXPLAT_REF_COUNT NewValue = OldValue + Bias;
+    if (NewValue == Bias) {
+      return FALSE;
+    }
 
-//         if (NewValue > Bias) {
-//             if(__atomic_compare_exchange_n(RefCount, &OldValue, NewValue, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)) {
-//                 return TRUE;
-//             }
-//             continue;
-//         }
+    CXPLAT_FRE_ASSERT(false);
+    return FALSE;
+  }
+}
 
-//         if (NewValue == Bias) {
-//             return FALSE;
-//         }
+BOOLEAN
+CxPlatRefDecrement(CXPLAT_REF_COUNT *RefCount) {
+  CXPLAT_REF_COUNT NewValue = __atomic_sub_fetch(RefCount, 1, __ATOMIC_SEQ_CST);
 
-//         CXPLAT_FRE_ASSERT(false);
-//         return FALSE;
-//     }
-// }
+  if (NewValue > 0) {
+    return FALSE;
+  }
 
-// BOOLEAN
-// CxPlatRefDecrement(
-//     _In_ CXPLAT_REF_COUNT* RefCount
-//     )
-// {
-//     CXPLAT_REF_COUNT NewValue = __atomic_sub_fetch(RefCount, 1, __ATOMIC_SEQ_CST);
+  if (NewValue == 0) {
+    return TRUE;
+  }
 
-//     if (NewValue > 0) {
-//         return FALSE;
-//     }
+  CXPLAT_FRE_ASSERT(FALSE);
 
-//     if (NewValue == 0) {
-//         return TRUE;
-//     }
-
-//     CXPLAT_FRE_ASSERT(FALSE);
-
-//     return FALSE;
-// }
+  return FALSE;
+}
 
 // void
 // CxPlatRundownInitialize(
@@ -320,7 +249,8 @@ CxPlatSystemUnload(
 //     _In_ const struct timespec *Time
 //     )
 // {
-//     return (Time->tv_sec * CXPLAT_MICROSEC_PER_SEC) + (Time->tv_nsec / CXPLAT_NANOSEC_PER_MICROSEC);
+//     return (Time->tv_sec * CXPLAT_MICROSEC_PER_SEC) + (Time->tv_nsec /
+//     CXPLAT_NANOSEC_PER_MICROSEC);
 // }
 
 // uint64_t
@@ -336,7 +266,7 @@ CxPlatSystemUnload(
 // }
 
 uint64_t CxPlatTimeUs64(void) {
-    return ztimer_now(ZTIMER_MSEC) * CXPLAT_MICROSEC_PER_MS;
+  return ztimer_now(ZTIMER_MSEC) * CXPLAT_MICROSEC_PER_MS;
 }
 
 // void
@@ -363,7 +293,8 @@ uint64_t CxPlatTimeUs64(void) {
 //     UNREFERENCED_PARAMETER(ErrorCode);
 
 //     Time->tv_sec += (DeltaMs / CXPLAT_MS_PER_SECOND);
-//     Time->tv_nsec += ((DeltaMs % CXPLAT_MS_PER_SECOND) * CXPLAT_NANOSEC_PER_MS);
+//     Time->tv_nsec += ((DeltaMs % CXPLAT_MS_PER_SECOND) *
+//     CXPLAT_NANOSEC_PER_MS);
 
 //     if (Time->tv_nsec >= CXPLAT_NANOSEC_PER_SEC)
 //     {
@@ -384,7 +315,8 @@ uint64_t CxPlatTimeUs64(void) {
 //     int ErrorCode = 0;
 //     struct timespec TS = {
 //         .tv_sec = (DurationMs / CXPLAT_MS_PER_SECOND),
-//         .tv_nsec = (CXPLAT_NANOSEC_PER_MS * (DurationMs % CXPLAT_MS_PER_SECOND))
+//         .tv_nsec = (CXPLAT_NANOSEC_PER_MS * (DurationMs %
+//         CXPLAT_MS_PER_SECOND))
 //     };
 
 //     ErrorCode = nanosleep(&TS, &TS);
@@ -401,8 +333,10 @@ uint64_t CxPlatTimeUs64(void) {
 //     return (uint32_t)sched_getcpu() % CxPlatProcessorCount;
 // #elif defined(CX_PLATFORM_DARWIN)
 //     //
-//     // arm64 macOS has no way to get the current proc, so treat as single core.
-//     // Intel macOS can return incorrect values for CPUID, so treat as single core.
+//     // arm64 macOS has no way to get the current proc, so treat as single
+//     core.
+//     // Intel macOS can return incorrect values for CPUID, so treat as single
+//     core.
 //     //
 //     return 0;
 // #endif // CX_PLATFORM_DARWIN
@@ -410,9 +344,8 @@ uint64_t CxPlatTimeUs64(void) {
 
 QUIC_STATUS
 CxPlatRandom(uint32_t BufferLen, void *Buffer) {
-    // FIXME: need to call random_init() somewhere
-    random_bytes(Buffer, BufferLen);
-    return QUIC_STATUS_SUCCESS;
+  random_bytes(Buffer, BufferLen);
+  return QUIC_STATUS_SUCCESS;
 }
 
 // void
@@ -429,7 +362,8 @@ CxPlatRandom(uint32_t BufferLen, void *Buffer) {
 //         OutAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
 //         OutAddr->Ipv6.sin6_port = InAddr->Ipv4.sin_port;
 //         memset(&(OutAddr->Ipv6.sin6_addr.s6_addr[10]), 0xff, 2);
-//         memcpy(&(OutAddr->Ipv6.sin6_addr.s6_addr[12]), &InAddr->Ipv4.sin_addr.s_addr, 4);
+//         memcpy(&(OutAddr->Ipv6.sin6_addr.s6_addr[12]),
+//         &InAddr->Ipv4.sin_addr.s_addr, 4);
 //     } else {
 //         *OutAddr = *InAddr;
 //     }
@@ -449,149 +383,29 @@ CxPlatRandom(uint32_t BufferLen, void *Buffer) {
 
 //         TmpAddr->Ipv4.sin_family = QUIC_ADDRESS_FAMILY_INET;
 //         TmpAddr->Ipv4.sin_port = InAddr->Ipv6.sin6_port;
-//         memcpy(&TmpAddr->Ipv4.sin_addr.s_addr, &InAddr->Ipv6.sin6_addr.s6_addr[12], 4);
-//         *OutAddr = *TmpAddr;
+//         memcpy(&TmpAddr->Ipv4.sin_addr.s_addr,
+//         &InAddr->Ipv6.sin6_addr.s6_addr[12], 4); *OutAddr = *TmpAddr;
 //     } else if (OutAddr != InAddr) {
 //         *OutAddr = *InAddr;
 //     }
 // }
 
-// #ifdef DEBUG
-// void
-// CxPlatSetAllocFailDenominator(
-//     _In_ int32_t Value
-//     )
-// {
-//     CxPlatform.AllocFailDenominator = Value;
-//     CxPlatform.AllocCounter = 0;
-// }
+#ifdef DEBUG
+void CxPlatSetAllocFailDenominator(int32_t Value) {
+  UNREFERENCED_PARAMETER(Value);
+}
 
-// int32_t
-// CxPlatGetAllocFailDenominator(
-//     )
-// {
-//     return CxPlatform.AllocFailDenominator;
-// }
-// #endif
+int32_t CxPlatGetAllocFailDenominator() { return 0; }
+#endif
 
 // #if defined(CX_PLATFORM_LINUX)
 
-// QUIC_STATUS
-// CxPlatThreadCreate(
-//     _In_ CXPLAT_THREAD_CONFIG* Config,
-//     _Out_ CXPLAT_THREAD* Thread
-//     )
-// {
-//     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-
-//     pthread_attr_t Attr;
-//     if (pthread_attr_init(&Attr)) {
-//         QuicTraceEvent(
-//             LibraryErrorStatus,
-//             "[ lib] ERROR, %u, %s.",
-//             errno,
-//             "pthread_attr_init failed");
-//         return errno;
-//     }
-
-// #ifdef __GLIBC__
-//     if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
-//         cpu_set_t CpuSet;
-//         CPU_ZERO(&CpuSet);
-//         CPU_SET(Config->IdealProcessor, &CpuSet);
-//         if (pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
-//             QuicTraceEvent(
-//                 LibraryError,
-//                 "[ lib] ERROR, %s.",
-//                 "pthread_attr_setaffinity_np failed");
-//         }
-//     } else {
-//         // TODO - Set Linux equivalent of NUMA affinity.
-//     }
-//     // There is no way to set an ideal processor in Linux.
-// #endif
-
-//     if (Config->Flags & CXPLAT_THREAD_FLAG_HIGH_PRIORITY) {
-//         struct sched_param Params;
-//         Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
-//         if (pthread_attr_setschedparam(&Attr, &Params)) {
-//             QuicTraceEvent(
-//                 LibraryErrorStatus,
-//                 "[ lib] ERROR, %u, %s.",
-//                 errno,
-//                 "pthread_attr_setschedparam failed");
-//         }
-//     }
-
-// #ifdef CXPLAT_USE_CUSTOM_THREAD_CONTEXT
-
-//     CXPLAT_THREAD_CUSTOM_CONTEXT* CustomContext =
-//         CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT), QUIC_POOL_CUSTOM_THREAD);
-//     if (CustomContext == NULL) {
-//         Status = QUIC_STATUS_OUT_OF_MEMORY;
-//         QuicTraceEvent(
-//             AllocFailure,
-//             "Allocation of '%s' failed. (%llu bytes)",
-//             "Custom thread context",
-//             sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT));
-//     }
-//     CustomContext->Callback = Config->Callback;
-//     CustomContext->Context = Config->Context;
-
-//     if (pthread_create(Thread, &Attr, CxPlatThreadCustomStart, CustomContext)) {
-//         Status = errno;
-//         QuicTraceEvent(
-//             LibraryErrorStatus,
-//             "[ lib] ERROR, %u, %s.",
-//             Status,
-//             "pthread_create failed");
-//         CXPLAT_FREE(CustomContext, QUIC_POOL_CUSTOM_THREAD);
-//     }
-
-// #else // CXPLAT_USE_CUSTOM_THREAD_CONTEXT
-
-//     //
-//     // If pthread_create fails with an error code, then try again without the attribute
-//     // because the CPU might be offline.
-//     //
-//     if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
-//         QuicTraceLogWarning(
-//             PlatformThreadCreateFailed,
-//             "[ lib] pthread_create failed, retrying without affinitization");
-//         if (pthread_create(Thread, NULL, Config->Callback, Config->Context)) {
-//             Status = errno;
-//             QuicTraceEvent(
-//                 LibraryErrorStatus,
-//                 "[ lib] ERROR, %u, %s.",
-//                 Status,
-//                 "pthread_create failed");
-//         }
-//     }
-
-// #endif // !CXPLAT_USE_CUSTOM_THREAD_CONTEXT
-
-// #if !defined(__GLIBC__) && !defined(__ANDROID__)
-//     if (Status == QUIC_STATUS_SUCCESS) {
-//         if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
-//             cpu_set_t CpuSet;
-//             CPU_ZERO(&CpuSet);
-//             CPU_SET(Config->IdealProcessor, &CpuSet);
-//             if (pthread_setaffinity_np(*Thread, sizeof(CpuSet), &CpuSet)) {
-//                 QuicTraceEvent(
-//                     LibraryError,
-//                     "[ lib] ERROR, %s.",
-//                     "pthread_setaffinity_np failed");
-//             }
-//         } else {
-//             // TODO - Set Linux equivalent of NUMA affinity.
-//         }
-//     }
-// #endif
-
-//     pthread_attr_destroy(&Attr);
-
-//     return Status;
-// }
+QUIC_STATUS
+CxPlatThreadCreate(CXPLAT_THREAD_CONFIG *Config, CXPLAT_THREAD *Thread) {
+  UNREFERENCED_PARAMETER(Config);
+  UNREFERENCED_PARAMETER(Thread);
+  return QUIC_STATUS_SUCCESS;
+}
 
 // QUIC_STATUS
 // CxPlatSetCurrentThreadProcessorAffinity(
@@ -676,22 +490,11 @@ CxPlatRandom(uint32_t BufferLen, void *Buffer) {
 
 // #endif // CX_PLATFORM
 
-// void
-// CxPlatThreadDelete(
-//     _Inout_ CXPLAT_THREAD* Thread
-//     )
-// {
-//     UNREFERENCED_PARAMETER(Thread);
-// }
+void CxPlatThreadDelete(CXPLAT_THREAD *Thread) {
+  UNREFERENCED_PARAMETER(Thread);
+}
 
-// void
-// CxPlatThreadWait(
-//     _Inout_ CXPLAT_THREAD* Thread
-//     )
-// {
-//     CXPLAT_DBG_ASSERT(pthread_equal(*Thread, pthread_self()) == 0);
-//     CXPLAT_FRE_ASSERT(pthread_join(*Thread, NULL) == 0);
-// }
+void CxPlatThreadWait(CXPLAT_THREAD *Thread) { UNREFERENCED_PARAMETER(Thread); }
 
 // CXPLAT_THREAD_ID
 // CxPlatCurThreadID(
@@ -705,15 +508,14 @@ CxPlatRandom(uint32_t BufferLen, void *Buffer) {
 
 // #elif defined(CX_PLATFORM_LINUX)
 
-//     CXPLAT_STATIC_ASSERT(sizeof(pid_t) <= sizeof(CXPLAT_THREAD_ID), "PID size exceeds the expected size");
-//     return syscall(SYS_gettid);
+//     CXPLAT_STATIC_ASSERT(sizeof(pid_t) <= sizeof(CXPLAT_THREAD_ID), "PID size
+//     exceeds the expected size"); return syscall(SYS_gettid);
 
 // #elif defined(CX_PLATFORM_DARWIN)
 //     // cppcheck-suppress duplicateExpression
-//     CXPLAT_STATIC_ASSERT(sizeof(uint32_t) == sizeof(CXPLAT_THREAD_ID), "The cast depends on thread id being 32 bits");
-//     uint64_t Tid;
-//     int Res = pthread_threadid_np(NULL, &Tid);
-//     UNREFERENCED_PARAMETER(Res);
+//     CXPLAT_STATIC_ASSERT(sizeof(uint32_t) == sizeof(CXPLAT_THREAD_ID), "The
+//     cast depends on thread id being 32 bits"); uint64_t Tid; int Res =
+//     pthread_threadid_np(NULL, &Tid); UNREFERENCED_PARAMETER(Res);
 //     CXPLAT_DBG_ASSERT(Res == 0);
 //     CXPLAT_DBG_ASSERT(Tid <= UINT32_MAX);
 //     return (CXPLAT_THREAD_ID)Tid;
@@ -721,17 +523,19 @@ CxPlatRandom(uint32_t BufferLen, void *Buffer) {
 // #endif // CX_PLATFORM_DARWIN
 // }
 
-void
-CxPlatLogAssert(
-    _In_z_ const char* File,
-    _In_ int Line,
-    _In_z_ const char* Expr
-    )
-{
-    QuicTraceEvent(
-        LibraryAssert,
-        "[ lib] ASSERT, %u:%s - %s.",
-        (uint32_t)Line,
-        File,
-        Expr);
+void CxPlatLogAssert(_In_z_ const char *File, _In_ int Line,
+                     _In_z_ const char *Expr) {
+  QuicTraceEvent(LibraryAssert, "[ lib] ASSERT, %u:%s - %s.", (uint32_t)Line,
+                 File, Expr);
+}
+
+int _strnicmp(const char *s1, const char *s2, unsigned int sz) {
+  for (unsigned int i = 0; i < sz; i++) {
+    const unsigned char *us1 = (const unsigned char *)s1;
+    const unsigned char *us2 = (const unsigned char *)s2;
+    const int res = toupper(us1[i]) - toupper(us2[i]);
+    if (res != 0)
+      return res;
+  }
+  return 0;
 }

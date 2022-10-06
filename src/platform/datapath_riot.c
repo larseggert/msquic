@@ -83,23 +83,20 @@ CxPlatDataPathIsPaddingPreferred(CXPLAT_DATAPATH *Datapath) {
   return false;
 }
 
-#if 0
-void CxPlatSocketDelete( CXPLAT_SOCKET *Socket) {
+void CxPlatSocketDelete(CXPLAT_SOCKET *Socket) {
   UNREFERENCED_PARAMETER(Socket);
 
   CXPLAT_DBG_ASSERT(Socket != NULL);
 }
 
-void CxPlatSocketGetLocalAddress( CXPLAT_SOCKET *Socket,
-                                  QUIC_ADDR *Address) {
+void CxPlatSocketGetLocalAddress(CXPLAT_SOCKET *Socket, QUIC_ADDR *Address) {
   UNREFERENCED_PARAMETER(Socket);
   UNREFERENCED_PARAMETER(Address);
 
   CXPLAT_DBG_ASSERT(Socket != NULL);
 }
 
-void CxPlatSocketGetRemoteAddress( CXPLAT_SOCKET *Socket,
-                                   QUIC_ADDR *Address) {
+void CxPlatSocketGetRemoteAddress(CXPLAT_SOCKET *Socket, QUIC_ADDR *Address) {
   UNREFERENCED_PARAMETER(Socket);
   UNREFERENCED_PARAMETER(Address);
 
@@ -107,9 +104,9 @@ void CxPlatSocketGetRemoteAddress( CXPLAT_SOCKET *Socket,
 }
 
 QUIC_STATUS
-CxPlatSocketCreateUdp( CXPLAT_DATAPATH *Datapath,
-                       const CXPLAT_UDP_CONFIG *Config,
-                       CXPLAT_SOCKET **NewBinding) {
+CxPlatSocketCreateUdp(CXPLAT_DATAPATH *Datapath,
+                      const CXPLAT_UDP_CONFIG *Config,
+                      CXPLAT_SOCKET **NewBinding) {
   UNREFERENCED_PARAMETER(Datapath);
   UNREFERENCED_PARAMETER(Config);
   UNREFERENCED_PARAMETER(NewBinding);
@@ -119,9 +116,8 @@ CxPlatSocketCreateUdp( CXPLAT_DATAPATH *Datapath,
 }
 
 QUIC_STATUS
-CxPlatSocketSend( CXPLAT_SOCKET *Socket,  const CXPLAT_ROUTE *Route,
-                  CXPLAT_SEND_DATA *SendData,
-                  uint16_t IdealProcessor) {
+CxPlatSocketSend(CXPLAT_SOCKET *Socket, const CXPLAT_ROUTE *Route,
+                 CXPLAT_SEND_DATA *SendData, uint16_t IdealProcessor) {
   UNREFERENCED_PARAMETER(Socket);
   UNREFERENCED_PARAMETER(Route);
   UNREFERENCED_PARAMETER(SendData);
@@ -131,10 +127,10 @@ CxPlatSocketSend( CXPLAT_SOCKET *Socket,  const CXPLAT_ROUTE *Route,
   return Status;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-    _Success_(return != NULL) CXPLAT_SEND_DATA *CxPlatSendDataAlloc(
-         CXPLAT_SOCKET *Socket,  CXPLAT_ECN_TYPE ECN,
-         uint16_t MaxPacketSize,  CXPLAT_ROUTE *Route) {
+CXPLAT_SEND_DATA *CxPlatSendDataAlloc(CXPLAT_SOCKET *Socket,
+                                      CXPLAT_ECN_TYPE ECN,
+                                      uint16_t MaxPacketSize,
+                                      CXPLAT_ROUTE *Route) {
   UNREFERENCED_PARAMETER(Socket);
   UNREFERENCED_PARAMETER(ECN);
   UNREFERENCED_PARAMETER(MaxPacketSize);
@@ -144,9 +140,8 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
   return 0;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL) _Success_(return != NULL)
-    QUIC_BUFFER *CxPlatSendDataAllocBuffer( CXPLAT_SEND_DATA *SendData,
-                                            uint16_t MaxBufferLength) {
+QUIC_BUFFER *CxPlatSendDataAllocBuffer(CXPLAT_SEND_DATA *SendData,
+                                       uint16_t MaxBufferLength) {
   UNREFERENCED_PARAMETER(SendData);
   UNREFERENCED_PARAMETER(MaxBufferLength);
 
@@ -155,21 +150,17 @@ _IRQL_requires_max_(DISPATCH_LEVEL) _Success_(return != NULL)
   return 0;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL) void CxPlatSendDataFree(
-     CXPLAT_SEND_DATA *SendData) {
+void CxPlatSendDataFree(CXPLAT_SEND_DATA *SendData) {
   UNREFERENCED_PARAMETER(SendData);
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL) void CxPlatSendDataFreeBuffer(
-     CXPLAT_SEND_DATA *SendData,  QUIC_BUFFER *Buffer) {
+void CxPlatSendDataFreeBuffer(CXPLAT_SEND_DATA *SendData, QUIC_BUFFER *Buffer) {
   UNREFERENCED_PARAMETER(SendData);
   UNREFERENCED_PARAMETER(Buffer);
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL) BOOLEAN
-    CxPlatSendDataIsFull( CXPLAT_SEND_DATA *SendData) {
+BOOLEAN
+CxPlatSendDataIsFull(CXPLAT_SEND_DATA *SendData) {
   UNREFERENCED_PARAMETER(SendData);
-
-  return false;
+  return FALSE;
 }
-#endif

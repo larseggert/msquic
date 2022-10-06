@@ -194,6 +194,8 @@ typedef union QUIC_ADDR {
   struct sockaddr_in6 Ipv6;
 } QUIC_ADDR;
 
+// #define INADDR_LOOPBACK 0x7f000001 // 127.0.0.1
+
 // #ifndef RTL_FIELD_SIZE
 // #define RTL_FIELD_SIZE(type, field)     (sizeof(((type *)0)->field))
 // #endif
@@ -243,16 +245,7 @@ typedef union QUIC_ADDR {
 // Helpers for Windows string functions.
 //
 
-inline int _strnicmp(const char *s1, const char *s2, unsigned int sz) {
-  for (unsigned int i = 0; i < sz; i++) {
-    const unsigned char *us1 = (const unsigned char *)s1;
-    const unsigned char *us2 = (const unsigned char *)s2;
-    const int res = toupper(us1[i]) - toupper(us2[i]);
-    if (res != 0)
-      return res;
-  }
-  return 0;
-}
+int _strnicmp(const char *s1, const char *s2, unsigned int sz);
 
 // #define sprintf_s(dst, dst_len, format, ...) sprintf(dst, format,
 // __VA_ARGS__) #define _vsnprintf_s(dst, dst_len, flag, format, ...)

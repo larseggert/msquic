@@ -11,54 +11,35 @@ Abstract:
 
 #include "platform_internal.h"
 
-#if 0
+void CxPlatHashFree(CXPLAT_HASH *Hash) { UNREFERENCED_PARAMETER(Hash); }
 
-_IRQL_requires_max_(DISPATCH_LEVEL) void CxPlatHashFree(
-    _In_opt_ CXPLAT_HASH *Hash) {
-  UNREFERENCED_PARAMETER(Hash);
-}
+void CxPlatKeyFree(CXPLAT_KEY *Key) { UNREFERENCED_PARAMETER(Key); }
 
-_IRQL_requires_max_(DISPATCH_LEVEL) void CxPlatKeyFree(
-    _In_opt_ CXPLAT_KEY *Key) {
-  UNREFERENCED_PARAMETER(Key);
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL) QUIC_STATUS
-    CxPlatKeyCreate(_In_ CXPLAT_AEAD_TYPE AeadType,
-                    _When_(AeadType == CXPLAT_AEAD_AES_128_GCM, _In_reads_(16))
-                        _When_(AeadType == CXPLAT_AEAD_AES_256_GCM,
-                               _In_reads_(32))
-                            _When_(AeadType == CXPLAT_AEAD_CHACHA20_POLY1305,
-                                   _In_reads_(32)) const uint8_t *const RawKey,
-                    _Out_ CXPLAT_KEY **NewKey) {
+QUIC_STATUS
+CxPlatKeyCreate(CXPLAT_AEAD_TYPE AeadType, const uint8_t *const RawKey,
+                CXPLAT_KEY **NewKey) {
   UNREFERENCED_PARAMETER(AeadType);
   UNREFERENCED_PARAMETER(RawKey);
   UNREFERENCED_PARAMETER(NewKey);
 
-  QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-  return Status;
+  return QUIC_STATUS_SUCCESS;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL) QUIC_STATUS
-    CxPlatHashCreate(_In_ CXPLAT_HASH_TYPE HashType,
-                     _In_reads_(SaltLength) const uint8_t *const Salt,
-                     _In_ uint32_t SaltLength, _Out_ CXPLAT_HASH **NewHash) {
+QUIC_STATUS
+CxPlatHashCreate(CXPLAT_HASH_TYPE HashType, const uint8_t *const Salt,
+                 uint32_t SaltLength, CXPLAT_HASH **NewHash) {
   UNREFERENCED_PARAMETER(HashType);
   UNREFERENCED_PARAMETER(Salt);
   UNREFERENCED_PARAMETER(SaltLength);
   UNREFERENCED_PARAMETER(NewHash);
 
-  QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-
-  return Status;
+  return QUIC_STATUS_SUCCESS;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL) QUIC_STATUS
-    CxPlatHashCompute(_In_ CXPLAT_HASH *Hash,
-                      _In_reads_(InputLength) const uint8_t *const Input,
-                      _In_ uint32_t InputLength,
-                      _In_ uint32_t OutputLength, // CxPlatHashLength(HashType)
-                      _Out_writes_all_(OutputLength) uint8_t *const Output) {
+QUIC_STATUS
+CxPlatHashCompute(CXPLAT_HASH *Hash, const uint8_t *const Input,
+                  uint32_t InputLength, uint32_t OutputLength,
+                  uint8_t *const Output) {
   UNREFERENCED_PARAMETER(Hash);
   UNREFERENCED_PARAMETER(Input);
   UNREFERENCED_PARAMETER(InputLength);
@@ -68,14 +49,10 @@ _IRQL_requires_max_(DISPATCH_LEVEL) QUIC_STATUS
   return QUIC_STATUS_SUCCESS;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL) QUIC_STATUS
-    CxPlatDecrypt(_In_ CXPLAT_KEY *Key,
-                  _In_reads_bytes_(CXPLAT_IV_LENGTH) const uint8_t *const Iv,
-                  _In_ uint16_t AuthDataLength,
-                  _In_reads_bytes_opt_(AuthDataLength)
-                      const uint8_t *const AuthData,
-                  _In_ uint16_t BufferLength,
-                  _Inout_updates_bytes_(BufferLength) uint8_t *Buffer) {
+QUIC_STATUS
+CxPlatDecrypt(CXPLAT_KEY *Key, const uint8_t *const Iv, uint16_t AuthDataLength,
+              const uint8_t *const AuthData, uint16_t BufferLength,
+              uint8_t *Buffer) {
   UNREFERENCED_PARAMETER(Key);
   UNREFERENCED_PARAMETER(Iv);
   UNREFERENCED_PARAMETER(AuthDataLength);
@@ -88,12 +65,9 @@ _IRQL_requires_max_(DISPATCH_LEVEL) QUIC_STATUS
   return QUIC_STATUS_SUCCESS;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL) QUIC_STATUS
-    CxPlatHpComputeMask(_In_ CXPLAT_HP_KEY *Key, _In_ uint8_t BatchSize,
-                        _In_reads_bytes_(CXPLAT_HP_SAMPLE_LENGTH *BatchSize)
-                            const uint8_t *const Cipher,
-                        _Out_writes_bytes_(CXPLAT_HP_SAMPLE_LENGTH *BatchSize)
-                            uint8_t *Mask) {
+QUIC_STATUS
+CxPlatHpComputeMask(CXPLAT_HP_KEY *Key, uint8_t BatchSize,
+                    const uint8_t *const Cipher, uint8_t *Mask) {
   UNREFERENCED_PARAMETER(Key);
   UNREFERENCED_PARAMETER(BatchSize);
   UNREFERENCED_PARAMETER(Cipher);
@@ -102,18 +76,10 @@ _IRQL_requires_max_(DISPATCH_LEVEL) QUIC_STATUS
   return QUIC_STATUS_SUCCESS;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL) QUIC_STATUS
-    CxPlatEncrypt(_In_ CXPLAT_KEY *Key,
-                  _In_reads_bytes_(CXPLAT_IV_LENGTH) const uint8_t *const Iv,
-                  _In_ uint16_t AuthDataLength,
-                  _In_reads_bytes_opt_(AuthDataLength)
-                      const uint8_t *const AuthData,
-                  _In_ uint16_t BufferLength,
-                  _When_(BufferLength > CXPLAT_ENCRYPTION_OVERHEAD,
-                         _Inout_updates_bytes_(BufferLength))
-                      _When_(BufferLength <= CXPLAT_ENCRYPTION_OVERHEAD,
-                             _Out_writes_bytes_(BufferLength))
-                          uint8_t *Buffer) {
+QUIC_STATUS
+CxPlatEncrypt(CXPLAT_KEY *Key, const uint8_t *const Iv, uint16_t AuthDataLength,
+              const uint8_t *const AuthData, uint16_t BufferLength,
+              uint8_t *Buffer) {
   UNREFERENCED_PARAMETER(Key);
   UNREFERENCED_PARAMETER(Iv);
   UNREFERENCED_PARAMETER(AuthDataLength);
@@ -125,23 +91,14 @@ _IRQL_requires_max_(DISPATCH_LEVEL) QUIC_STATUS
   return QUIC_STATUS_SUCCESS;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL) void CxPlatHpKeyFree(
-    _In_opt_ CXPLAT_HP_KEY *Key) {
-  UNREFERENCED_PARAMETER(Key);
-}
+void CxPlatHpKeyFree(CXPLAT_HP_KEY *Key) { UNREFERENCED_PARAMETER(Key); }
 
-_IRQL_requires_max_(DISPATCH_LEVEL) QUIC_STATUS CxPlatHpKeyCreate(
-    _In_ CXPLAT_AEAD_TYPE AeadType,
-    _When_(AeadType == CXPLAT_AEAD_AES_128_GCM, _In_reads_(16))
-        _When_(AeadType == CXPLAT_AEAD_AES_256_GCM, _In_reads_(32))
-            _When_(AeadType == CXPLAT_AEAD_CHACHA20_POLY1305, _In_reads_(32))
-                const uint8_t *const RawKey,
-    _Out_ CXPLAT_HP_KEY **NewKey) {
+QUIC_STATUS
+CxPlatHpKeyCreate(CXPLAT_AEAD_TYPE AeadType, const uint8_t *const RawKey,
+                  CXPLAT_HP_KEY **NewKey) {
   UNREFERENCED_PARAMETER(AeadType);
   UNREFERENCED_PARAMETER(RawKey);
   UNREFERENCED_PARAMETER(NewKey);
 
-  QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-  return Status;
+  return QUIC_STATUS_SUCCESS;
 }
-#endif
