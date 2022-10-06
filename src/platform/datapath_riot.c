@@ -15,6 +15,9 @@ Environment:
 
 #include "platform_internal.h"
 
+typedef struct CXPLAT_DATAPATH {
+} CXPLAT_DATAPATH;
+
 uint32_t CxPlatDataPathGetSupportedFeatures(CXPLAT_DATAPATH *Datapath) {
   UNREFERENCED_PARAMETER(Datapath);
   return 0;
@@ -38,6 +41,25 @@ CxPlatDataPathInitialize(uint32_t ClientRecvContextLength,
   if (NewDataPath == NULL) {
     return QUIC_STATUS_INVALID_PARAMETER;
   }
+
+  if (!CxPlatWorkersLazyStart(Config)) {
+    return QUIC_STATUS_OUT_OF_MEMORY;
+  }
+
+  const size_t DatapathLength = sizeof(CXPLAT_DATAPATH);
+
+  CXPLAT_DATAPATH *Datapath =
+      (CXPLAT_DATAPATH *)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
+
+  if (Datapath == NULL) {
+    QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)",
+                   "CXPLAT_DATAPATH", DatapathLength);
+    return QUIC_STATUS_OUT_OF_MEMORY;
+  }
+
+  CxPlatZeroMemory(Datapath, DatapathLength);
+  *NewDataPath = Datapath;
+
   return QUIC_STATUS_SUCCESS;
 }
 

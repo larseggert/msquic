@@ -323,24 +323,9 @@ uint64_t CxPlatTimeUs64(void) {
 //     CXPLAT_DBG_ASSERT(ErrorCode == 0);
 //     UNREFERENCED_PARAMETER(ErrorCode);
 // }
+//
 
-// uint32_t
-// CxPlatProcCurrentNumber(
-//     void
-//     )
-// {
-// #if defined(CX_PLATFORM_LINUX)
-//     return (uint32_t)sched_getcpu() % CxPlatProcessorCount;
-// #elif defined(CX_PLATFORM_DARWIN)
-//     //
-//     // arm64 macOS has no way to get the current proc, so treat as single
-//     core.
-//     // Intel macOS can return incorrect values for CPUID, so treat as single
-//     core.
-//     //
-//     return 0;
-// #endif // CX_PLATFORM_DARWIN
-// }
+uint32_t CxPlatProcCurrentNumber(void);
 
 QUIC_STATUS
 CxPlatRandom(uint32_t BufferLen, void *Buffer) {
@@ -508,8 +493,8 @@ void CxPlatThreadWait(CXPLAT_THREAD *Thread) { UNREFERENCED_PARAMETER(Thread); }
 
 // #elif defined(CX_PLATFORM_LINUX)
 
-//     CXPLAT_STATIC_ASSERT(sizeof(pid_t) <= sizeof(CXPLAT_THREAD_ID), "PID size
-//     exceeds the expected size"); return syscall(SYS_gettid);
+//     CXPLAT_STATIC_ASSERT(sizeof(pid_t) <= sizeof(CXPLAT_THREAD_ID), "PID
+//     size exceeds the expected size"); return syscall(SYS_gettid);
 
 // #elif defined(CX_PLATFORM_DARWIN)
 //     // cppcheck-suppress duplicateExpression
