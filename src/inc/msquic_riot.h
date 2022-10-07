@@ -89,7 +89,7 @@ template <class T> struct _ENUM_FLAG_SIZED_INTEGER {
 
 #define QUIC_API
 #define QUIC_MAIN_EXPORT
-#define QUIC_STATUS uint16_t
+#define QUIC_STATUS uint32_t
 #define QUIC_FAILED(X) ((int)(X) > 0)
 #define QUIC_SUCCEEDED(X) ((int)(X) <= 0)
 
@@ -111,9 +111,9 @@ template <class T> struct _ENUM_FLAG_SIZED_INTEGER {
 // #define ENOKEY 126
 // #endif // ENOKEY
 
-#define ERROR_BASE 0
-#define TLS_ERROR_BASE 256 + ERROR_BASE
-#define CERT_ERROR_BASE 512 + ERROR_BASE
+#define ERROR_BASE 200000000             // 0xBEBC200
+#define TLS_ERROR_BASE 256 + ERROR_BASE  // 0xBEBC300
+#define CERT_ERROR_BASE 512 + ERROR_BASE // 0xBEBC400
 
 #define QUIC_STATUS_SUCCESS ((QUIC_STATUS)0)                // 0
 #define QUIC_STATUS_PENDING ((QUIC_STATUS)-2)               // -2

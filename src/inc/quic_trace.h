@@ -301,29 +301,33 @@ QuicTraceStubVarArgs(
 void //__attribute__((format(printf, 1, 2)))
 clog_printf(const char *format, ...);
 
-#define QuicTraceLogError(Name, Fmt, ...) clog_printf(Fmt "\n", ##__VA_ARGS__)
-#define QuicTraceLogWarning(Name, Fmt, ...) clog_printf(Fmt "\n", ##__VA_ARGS__)
-#define QuicTraceLogInfo(Name, Fmt, ...) clog_printf(Fmt "\n", ##__VA_ARGS__)
-#define QuicTraceLogVerbose(Name, Fmt, ...) clog_printf(Fmt "\n", ##__VA_ARGS__)
+// FIXME: the 42-hack strips "/data/riotbuild/riotbase/build/pkg/msquic/"
+#define loc_printf(Fmt, ...)                                                   \
+  clog_printf("%s:%d " Fmt, &(__FILE__[42]), __LINE__, ##__VA_ARGS__)
+
+#define QuicTraceLogError(Name, Fmt, ...) loc_printf(Fmt "\n", ##__VA_ARGS__)
+#define QuicTraceLogWarning(Name, Fmt, ...) loc_printf(Fmt "\n", ##__VA_ARGS__)
+#define QuicTraceLogInfo(Name, Fmt, ...) loc_printf(Fmt "\n", ##__VA_ARGS__)
+#define QuicTraceLogVerbose(Name, Fmt, ...) loc_printf(Fmt "\n", ##__VA_ARGS__)
 
 #define QuicTraceLogStreamError(Stream, Name, Fmt, ...)                        \
-  clog_printf(Fmt "\n", ##__VA_ARGS__)
+  loc_printf(Fmt "\n", ##__VA_ARGS__)
 #define QuicTraceLogStreamWarning(Stream, Name, Fmt, ...)                      \
-  clog_printf(Fmt "\n", ##__VA_ARGS__)
+  loc_printf(Fmt "\n", ##__VA_ARGS__)
 #define QuicTraceLogStreamInfo(Stream, Name, Fmt, ...)                         \
-  clog_printf(Fmt "\n", ##__VA_ARGS__)
+  loc_printf(Fmt "\n", ##__VA_ARGS__)
 #define QuicTraceLogStreamVerbose(Stream, Name, Fmt, ...)                      \
-  clog_printf(Fmt "\n", ##__VA_ARGS__)
+  loc_printf(Fmt "\n", ##__VA_ARGS__)
 
 #define QuicTraceLogConnError(Name, Ptr, Fmt, ...)                             \
-  clog_printf(Fmt "\n", ##__VA_ARGS__)
+  loc_printf(Fmt "\n", ##__VA_ARGS__)
 #define QuicTraceLogConnWarning(Name, Ptr, Fmt, ...)                           \
-  clog_printf(Fmt "\n", ##__VA_ARGS__)
+  loc_printf(Fmt "\n", ##__VA_ARGS__)
 #define QuicTraceLogConnInfo(Name, Ptr, Fmt, ...)                              \
-  clog_printf(Fmt "\n", ##__VA_ARGS__)
+  loc_printf(Fmt "\n", ##__VA_ARGS__)
 #define QuicTraceLogConnVerbose(Name, Ptr, Fmt, ...)                           \
-  clog_printf(Fmt "\n", ##__VA_ARGS__)
+  loc_printf(Fmt "\n", ##__VA_ARGS__)
 
-#define QuicTraceEvent(Name, Fmt, ...) clog_printf(Fmt "\n", ##__VA_ARGS__)
+#define QuicTraceEvent(Name, Fmt, ...) loc_printf(Fmt "\n", ##__VA_ARGS__)
 
 #endif
