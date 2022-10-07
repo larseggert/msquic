@@ -565,7 +565,6 @@ else() #!WIN32
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_SHARED_PORT_TESTS)
     elseif (CX_PLATFORM STREQUAL "riot")
         list(APPEND QUIC_COMMON_DEFINES CX_PLATFORM_RIOT)
-        list(APPEND QUIC_COMMON_FLAGS -Wno-unused-variable)
     else()
         list(APPEND QUIC_COMMON_DEFINES CX_PLATFORM_LINUX)
         message(STATUS "Enabling shared ephemeral port work around")
