@@ -709,7 +709,7 @@ QuicStreamOnBytesDelivered(
                 QuicTraceLogStreamVerbose(
                     IncreaseRxBuffer,
                     Stream,
-                    "Increasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)",
+                    "Increasing max RX buffer size to %"PRIu32" (MinRtt=%"PRIu32"; TimeNow=%"PRIu32"; LastUpdate=%"PRIu32")",
                     Stream->RecvBuffer.VirtualBufferLength * 2,
                     Stream->Connection->Paths[0].MinRtt,
                     TimeNow,

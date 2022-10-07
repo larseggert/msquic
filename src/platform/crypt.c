@@ -33,7 +33,7 @@ CxPlatTlsLogSecret(
     }
     QuicTraceLogVerbose(
         TlsLogSecret,
-        "[ tls] %s[%u]: %s",
+        "[ tls] %s[%"PRIu32"]: %s",
         Prefix,
         Length,
         SecretStr);

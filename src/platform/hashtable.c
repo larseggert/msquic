@@ -58,8 +58,16 @@ Notes:
 // Define table sizes.
 //
 
+#include <limits.h>
+#include <stdint.h>
+
+#if UINT_MAX > UINT16_MAX
 #define HT_FIRST_LEVEL_DIR_SIZE   16
 #define HT_SECOND_LEVEL_DIR_SHIFT  7
+#else
+#define HT_FIRST_LEVEL_DIR_SIZE   8
+#define HT_SECOND_LEVEL_DIR_SHIFT  3
+#endif
 #define HT_SECOND_LEVEL_DIR_MIN_SIZE (1 << HT_SECOND_LEVEL_DIR_SHIFT)
 
 //

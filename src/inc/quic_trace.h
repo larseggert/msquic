@@ -233,6 +233,8 @@ QuicTraceStubVarArgs(
 #ifdef QUIC_LOGS_MANIFEST_ETW
 
 #if defined(CX_PLATFORM_RIOT)
+#include <stdio.h>
+
 #define QuicTraceLogErrorEnabled()   TRUE
 #define QuicTraceLogWarningEnabled() TRUE
 #define QuicTraceLogInfoEnabled()    TRUE

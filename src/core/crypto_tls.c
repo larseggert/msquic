@@ -1110,7 +1110,7 @@ QuicCryptoTlsEncodeTransportParameters(
         QuicTraceLogConnVerbose(
             EncodeTPVersionNegotiationExt,
             Connection,
-            "TP: Version Negotiation Extension (%u bytes)",
+            "TP: Version Negotiation Extension (%"PRIu32" bytes)",
             TransportParams->VersionInfoLength);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_MIN_ACK_DELAY) {
@@ -1161,7 +1161,7 @@ QuicCryptoTlsEncodeTransportParameters(
         QuicTraceLogConnVerbose(
             EncodeTPTest,
             Connection,
-            "TP: TEST TP (Type %hu, Length %hu)",
+            "TP: TEST TP (Type %"PRIu32", Length %"PRIu16")",
             TestParam->Type,
             TestParam->Length);
     }

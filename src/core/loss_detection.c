@@ -1007,7 +1007,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 if (!NonretransmittableHandshakePacket) {
                     QuicTraceLogVerbose(
                         PacketTxLostRack,
-                        "[%c][TX][%llu] Lost: RACK %u ms",
+                        "[%c][TX][%"PRIu64"] Lost: RACK %"PRIu32" ms",
                         PtkConnPre(Connection),
                         Packet->PacketNumber,
                         CxPlatTimeDiff32(Packet->SentTime, TimeNow));
@@ -1456,7 +1456,7 @@ QuicLossDetectionProcessAckBlocks(
         uint32_t PacketRtt = CxPlatTimeDiff32(Packet->SentTime, (uint32_t)TimeNow);
         QuicTraceLogVerbose(
             PacketTxAcked,
-            "[%c][TX][%llu] ACKed (%u.%03u ms)",
+            "[%c][TX][%"PRIu64"] ACKed (%"PRIu32".%03"PRIu32" ms)",
             PtkConnPre(Connection),
             Packet->PacketNumber,
             PacketRtt / 1000,

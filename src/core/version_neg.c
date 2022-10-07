@@ -233,7 +233,7 @@ QuicVersionNegotiationExtParseVersionInfo(
     QuicTraceLogConnInfo(
         ServerVersionInfoDecoded,
         Connection,
-        "VerInfo Decoded: Chosen Ver:%x Other Ver Count:%u",
+        "VerInfo Decoded: Chosen Ver:%"PRIx32" Other Ver Count:%"PRIu32,
         VersionInfo->ChosenVersion,
         VersionInfo->AvailableVersionsCount);
 
@@ -300,7 +300,7 @@ QuicVersionNegotiationExtEncodeVersionInfo(
         QuicTraceLogConnInfo(
             ServerVersionNegotiationInfoEncoded,
             Connection,
-            "Server VI Encoded: Chosen Ver:%x Other Ver Count:%u",
+            "Server VI Encoded: Chosen Ver:%"PRIx32" Other Ver Count:%"PRIu32,
             Connection->Stats.QuicVersion,
             AvailableVersionsListLength);
 
@@ -362,7 +362,7 @@ QuicVersionNegotiationExtEncodeVersionInfo(
         QuicTraceLogConnInfo(
             ClientVersionInfoEncoded,
             Connection,
-            "Client VI Encoded: Current Ver:%x Prev Ver:%x Compat Ver Count:%u",
+            "Client VI Encoded: Current Ver:%"PRIx32" Prev Ver:%"PRIx32" Compat Ver Count:%"PRIu32,
             Connection->Stats.QuicVersion,
             Connection->PreviousQuicVersion,
             CompatibilityListByteLength == 0 ?

@@ -46,7 +46,7 @@ QuicCryptoDumpSendState(
         QuicTraceLogConnVerbose(
             CryptoDump,
             Connection,
-            "QS:%u MAX:%u UNA:%u NXT:%u RECOV:%u-%u",
+            "QS:%"PRIu32" MAX:%"PRIu32" UNA:%"PRIu32" NXT:%"PRIu32" RECOV:%"PRIu32"-%"PRIu32,
             Crypto->TlsState.BufferTotalLength,
             Crypto->MaxSentLength,
             Crypto->UnAckedOffset,
@@ -70,7 +70,7 @@ QuicCryptoDumpSendState(
             QuicTraceLogConnVerbose(
                 CryptoDumpUnacked2,
                 Connection,
-                "  unACKed: [%llu, %u]",
+                "  unACKed: [%"PRIu64", %"PRIu32"]",
                 UnAcked,
                 Crypto->MaxSentLength);
         }
@@ -674,8 +674,8 @@ QuicCryptoWriteOneFrame(
     QuicTraceLogConnVerbose(
         AddCryptoFrame,
         Connection,
-        "Sending %hu crypto bytes, offset=%u",
-        (uint16_t)Frame.Length,
+        "Sending %"PRIu64" crypto bytes, offset=%"PRIu32,
+        Frame.Length,
         CryptoOffset);
 
     //
@@ -1109,7 +1109,7 @@ QuicCryptoOnAck(
     QuicTraceLogConnVerbose(
         AckCrypto,
         Connection,
-        "Received ack for %u crypto bytes, offset=%u",
+        "Received ack for %"PRIu32" crypto bytes, offset=%"PRIu32,
         Length,
         Offset);
 
@@ -1680,7 +1680,7 @@ QuicCryptoProcessDataComplete(
         QuicTraceLogConnVerbose(
             DrainCrypto,
             QuicCryptoGetConnection(Crypto),
-            "Draining %u crypto bytes",
+            "Draining %"PRIu32" crypto bytes",
             RecvBufferConsumed);
         QuicRecvBufferDrain(&Crypto->RecvBuffer, RecvBufferConsumed);
     }

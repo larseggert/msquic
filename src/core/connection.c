@@ -841,7 +841,7 @@ QuicConnUpdateRtt(
         QuicTraceLogConnVerbose(
             RttUpdatedMsg,
             Connection,
-            "Updated Rtt=%u.%03u ms, Var=%u.%03u",
+            "Updated Rtt=%"PRIu32".%03"PRIu32" ms, Var=%"PRIu32".%03"PRIu32,
             Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
             Path->RttVariance / 1000, Path->RttVariance % 1000);
     }
@@ -2712,7 +2712,7 @@ QuicConnProcessPeerVersionNegotiationTP(
             QuicTraceLogConnError(
                 ClientVersionInfoVersionMismatch,
                 Connection,
-                "Client Chosen Version doesn't match long header. 0x%x != 0x%x",
+                "Client Chosen Version doesn't match long header. 0x%"PRIx32" != 0x%"PRIx32,
                 ClientVI.ChosenVersion,
                 Connection->Stats.QuicVersion);
             QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
@@ -2744,7 +2744,7 @@ QuicConnProcessPeerVersionNegotiationTP(
                     QuicTraceLogConnVerbose(
                         ClientVersionNegotiationCompatibleVersionUpgrade,
                         Connection,
-                        "Compatible version upgrade! Old: 0x%x, New: 0x%x",
+                        "Compatible version upgrade! Old: 0x%"PRIx32", New: 0x%"PRIx32,
                         Connection->Stats.QuicVersion,
                         SupportedVersions[ServerVersionIdx]);
                     Connection->Stats.QuicVersion = SupportedVersions[ServerVersionIdx];
@@ -2790,7 +2790,7 @@ QuicConnProcessPeerVersionNegotiationTP(
             QuicTraceLogConnError(
                 ServerVersionInfoVersionMismatch,
                 Connection,
-                "Server Chosen Version doesn't match long header. 0x%x != 0x%x",
+                "Server Chosen Version doesn't match long header. 0x%"PRIx32" != 0x%"PRIx32,
                 ServerVI.ChosenVersion,
                 Connection->Stats.QuicVersion);
             QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
@@ -2830,7 +2830,7 @@ QuicConnProcessPeerVersionNegotiationTP(
             QuicTraceLogConnError(
                 ClientChosenVersionMismatchServerChosenVersion,
                 Connection,
-                "Client Chosen Version doesn't match Server Chosen Version: 0x%x vs. 0x%x",
+                "Client Chosen Version doesn't match Server Chosen Version: 0x%"PRIx32" vs. 0x%"PRIx32,
                 ClientChosenVersion,
                 ServerVI.ChosenVersion);
             QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
@@ -2845,7 +2845,7 @@ QuicConnProcessPeerVersionNegotiationTP(
                 QuicTraceLogConnError(
                     ServerVersionInformationPreviousVersionIsChosenVersion,
                     Connection,
-                    "Previous Client Version is Server Chosen Version: 0x%x",
+                    "Previous Client Version is Server Chosen Version: 0x%"PRIx32,
                     Connection->PreviousQuicVersion);
                 QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
                 return QUIC_STATUS_PROTOCOL_ERROR;
@@ -2859,7 +2859,7 @@ QuicConnProcessPeerVersionNegotiationTP(
                         QuicTraceLogConnError(
                             ServerVersionInformationPreviousVersionInOtherVerList,
                             Connection,
-                            "Previous Client Version in Server Available Versions list: 0x%x",
+                            "Previous Client Version in Server Available Versions list: 0x%"PRIx32,
                             Connection->PreviousQuicVersion);
                         QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
                         return QUIC_STATUS_PROTOCOL_ERROR;
@@ -2876,7 +2876,7 @@ QuicConnProcessPeerVersionNegotiationTP(
                 QuicTraceLogConnError(
                     CompatibleVersionNegotiationNotCompatible,
                     Connection,
-                    "Compatible Version negotiation not compatible with client: original 0x%x, upgrade: 0x%x",
+                    "Compatible Version negotiation not compatible with client: original 0x%"PRIx32", upgrade: 0x%"PRIx32,
                     Connection->OriginalQuicVersion,
                     ServerVI.ChosenVersion);
                 QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
@@ -2886,7 +2886,7 @@ QuicConnProcessPeerVersionNegotiationTP(
                 QuicTraceLogConnError(
                     CompatibleVersionNegotiationOriginalVersionNotFound,
                     Connection,
-                    "OriginalVersion not found in server's TP: original 0x%x, upgrade: 0x%x",
+                    "OriginalVersion not found in server's TP: original 0x%"PRIx32", upgrade: 0x%"PRIx32,
                     Connection->OriginalQuicVersion,
                     ServerVI.ChosenVersion);
                 QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
@@ -2896,7 +2896,7 @@ QuicConnProcessPeerVersionNegotiationTP(
             QuicTraceLogConnVerbose(
                 CompatibleVersionUpgradeComplete,
                 Connection,
-                "Compatible version upgrade! Old: 0x%x, New: 0x%x",
+                "Compatible version upgrade! Old: 0x%"PRIx32", New: 0x%"PRIx32,
                 Connection->OriginalQuicVersion,
                 Connection->Stats.QuicVersion);
         }
@@ -3112,7 +3112,7 @@ QuicConnPeerCertReceived(
     QuicTraceLogConnVerbose(
         IndicatePeerCertificateReceived,
         Connection,
-        "Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED (0x%x, 0x%x)",
+        "Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED (0x%"PRIx32", 0x%x)",
         DeferredErrorFlags,
         DeferredStatus);
     QUIC_STATUS Status = QuicConnIndicateEvent(Connection, &Event);
@@ -3154,7 +3154,7 @@ QuicConnQueueRecvDatagrams(
     QuicTraceLogConnVerbose(
         QueueDatagrams,
         Connection,
-        "Queuing %u UDP datagrams",
+        "Queuing %"PRIu32" UDP datagrams",
         DatagramChainLength);
 
     BOOLEAN QueueOperation;
@@ -3392,8 +3392,8 @@ QuicConnRecvVerNeg(
         QuicTraceLogConnVerbose(
             VerNegItem,
             Connection,
-            "  Ver[%d]: 0x%x",
-            (int32_t)i,
+            "  Ver[%d]: 0x%"PRIx32,
+            i,
             CxPlatByteSwapUint32(ServerVersion));
 
         //
@@ -5471,13 +5471,13 @@ QuicConnRecvDatagrams(
         QuicTraceLogConnVerbose(
             UdpRecvDeferred,
             Connection,
-            "Recv %u deferred UDP datagrams",
+            "Recv %"PRIu32" deferred UDP datagrams",
             DatagramChainCount);
     } else {
         QuicTraceLogConnVerbose(
             UdpRecv,
             Connection,
-            "Recv %u UDP datagrams",
+            "Recv %"PRIu32" UDP datagrams",
             DatagramChainCount);
     }
 
@@ -6308,7 +6308,7 @@ QuicConnParamSet(
             UpdateStreamSchedulingScheme,
             Connection,
             "Updated Stream Scheduling Scheme = %u",
-            (uint32_t)Scheme);
+            Scheme);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -6434,7 +6434,7 @@ QuicConnParamSet(
         QuicTraceLogConnInfo(
             LocalInterfaceSet,
             Connection,
-            "Local interface set to %u",
+            "Local interface set to %"PRIu32,
             Connection->Paths[0].Route.LocalAddress.Ipv6.sin6_scope_id);
 
         Status = QUIC_STATUS_SUCCESS;
@@ -6574,7 +6574,7 @@ QuicConnParamSet(
         QuicTraceLogConnVerbose(
             TestTPSet,
             Connection,
-            "Setting Test Transport Parameter (type %x, %hu bytes)",
+            "Setting Test Transport Parameter (type %"PRIx32", %hu bytes)",
             Connection->TestTransportParameter.Type,
             Connection->TestTransportParameter.Length);
 

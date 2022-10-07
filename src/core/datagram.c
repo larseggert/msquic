@@ -101,8 +101,8 @@ QuicDatagramIndicateSendStateChange(
     QuicTraceLogConnVerbose(
         DatagramSendStateChanged,
         Connection,
-        "Indicating DATAGRAM_SEND_STATE_CHANGED to %u",
-        (uint32_t)State);
+        "Indicating DATAGRAM_SEND_STATE_CHANGED to %"PRIu16,
+        State);
     (void)QuicConnIndicateEvent(Connection, &Event);
 
     *ClientContext = Event.DATAGRAM_SEND_STATE_CHANGED.ClientContext;

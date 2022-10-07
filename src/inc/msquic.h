@@ -64,7 +64,7 @@ typedef _In_range_(0, QUIC_UINT62_MAX) uint64_t QUIC_UINT62;
 //
 // A server name must not exceed 65535 bytes.
 //
-#define QUIC_MAX_SNI_LENGTH             65535
+#define QUIC_MAX_SNI_LENGTH             65535UL
 
 //
 // The maximum number of bytes of application data a server application can

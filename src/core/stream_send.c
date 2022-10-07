@@ -1318,7 +1318,7 @@ QuicStreamOnAck(
     QuicTraceLogStreamVerbose(
         AckRangeMsg,
         Stream,
-        "Received ack for %d bytes, offset=%llu, FF=0x%hx",
+        "Received ack for %"PRId32" bytes, offset=%llu, FF=0x%hx",
         (int32_t)Length,
         Offset,
         FrameMetadata->Flags);

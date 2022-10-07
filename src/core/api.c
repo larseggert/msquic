@@ -336,7 +336,7 @@ MsQuicConnectionStart(
         //
         // Validate the server name length.
         //
-        size_t ServerNameLength = strnlen(ServerName, QUIC_MAX_SNI_LENGTH + 1);
+        size_t ServerNameLength = strnlen(ServerName, QUIC_MAX_SNI_LENGTH);
         if (ServerNameLength == QUIC_MAX_SNI_LENGTH + 1) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;

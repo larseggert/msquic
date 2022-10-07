@@ -86,7 +86,14 @@ extern "C" {
 
 #define CXPLAT_HASH_ALLOCATED_HEADER 0x00000001
 
+#include <limits.h>
+#include <stdint.h>
+
+#if UINT_MAX > UINT16_MAX
 #define CXPLAT_HASH_MIN_SIZE 128
+#else
+#define CXPLAT_HASH_MIN_SIZE 8
+#endif
 
 typedef struct CXPLAT_HASHTABLE_ENTRY {
     CXPLAT_LIST_ENTRY Linkage;

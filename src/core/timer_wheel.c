@@ -148,7 +148,7 @@ QuicTimerWheelResize(
 
     QuicTraceLogVerbose(
         TimerWheelResize,
-        "[time][%p] Resizing timer wheel (new slot count = %u).",
+        "[time][%p] Resizing timer wheel (new slot count = %"PRIu32").",
         TimerWheel,
         NewSlotCount);
 

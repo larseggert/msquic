@@ -293,7 +293,7 @@ QuicSendSetSendFlag(
         QuicTraceLogConnVerbose(
             ScheduleSendFlags,
             Connection,
-            "Scheduling flags 0x%x to 0x%x",
+            "Scheduling flags 0x%"PRIx32" to 0x%"PRIx32,
             SendFlags,
             Send->SendFlags);
         Send->SendFlags |= SendFlags;
@@ -320,7 +320,7 @@ QuicSendClearSendFlag(
         QuicTraceLogConnVerbose(
             RemoveSendFlagsMsg,
             QuicSendGetConnection(Send),
-            "Removing flags %x",
+            "Removing flags %"PRIx32,
             (SendFlags & Send->SendFlags));
         Send->SendFlags &= ~SendFlags;
     }
@@ -404,7 +404,7 @@ QuicSendSetStreamSendFlag(
         QuicTraceLogStreamVerbose(
             SetSendFlag,
             Stream,
-            "Setting flags 0x%x (existing flags: 0x%x)",
+            "Setting flags 0x%"PRIx32" (existing flags: 0x%"PRIx16")",
             (SendFlags & (uint32_t)(~Stream->SendFlags)),
             Stream->SendFlags);
 
@@ -436,7 +436,7 @@ QuicSendClearStreamSendFlag(
         QuicTraceLogStreamVerbose(
             ClearSendFlags,
             Stream,
-            "Removing flags %x",
+            "Removing flags %"PRIx32,
             (SendFlags & Stream->SendFlags));
 
         //
@@ -1343,7 +1343,7 @@ QuicSendFlush(
     QuicTraceLogConnVerbose(
         SendFlushComplete,
         Connection,
-        "Flush complete flags=0x%x",
+        "Flush complete flags=0x%"PRIx32,
         Send->SendFlags);
 
     if (Result == QUIC_SEND_INCOMPLETE) {
@@ -1398,7 +1398,7 @@ QuicSendStartDelayedAckTimer(
         QuicTraceLogConnVerbose(
             StartAckDelayTimer,
             Connection,
-            "Starting ACK_DELAY timer for %u ms",
+            "Starting ACK_DELAY timer for %"PRIu32" ms",
             Connection->Settings.MaxAckDelayMs);
         QuicConnTimerSet(
             Connection,

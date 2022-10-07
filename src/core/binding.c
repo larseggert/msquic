@@ -1050,7 +1050,7 @@ QuicBindingProcessStatelessOperation(
 
         QuicTraceLogVerbose(
             PacketTxRetry,
-            "[S][TX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %hu bytes)",
+            "[S][TX][-] LH Ver:0x%"PRIx32" DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %hu bytes)",
             RecvPacket->LH->Version,
             QuicCidBufToStr(RecvPacket->SourceCid, RecvPacket->SourceCidLen).Buffer,
             QuicCidBufToStr(NewDestCid, MsQuicLib.CidTotalLength).Buffer,

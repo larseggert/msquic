@@ -374,7 +374,7 @@ QuicPerfCounterAdd(
 #define QuicPerfCounterIncrement(Type) QuicPerfCounterAdd(Type, 1)
 #define QuicPerfCounterDecrement(Type) QuicPerfCounterAdd(Type, -1)
 
-#define QUIC_PERF_SAMPLE_INTERVAL_S    30 // 30 seconds
+#define QUIC_PERF_SAMPLE_INTERVAL_S    30UL // 30 seconds
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void

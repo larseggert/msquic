@@ -668,7 +668,7 @@ QuicPacketLogHeader(
             while (Offset < PacketLength) {
                 QuicTraceLogVerbose(
                     LogPacketVersionNegotiationVersion,
-                    "[%c][%cX][-]   Ver:0x%x",
+                    "[%c][%cX][-]   Ver:0x%"PRIx32"",
                     PtkConnPre(Connection),
                     (uint8_t)PktRxPre(Rx),
                     *(uint32_t*)(Packet + Offset));
@@ -703,7 +703,7 @@ QuicPacketLogHeader(
 
                 QuicTraceLogVerbose(
                     LogPacketRetry,
-                    "[%c][%cX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R (Token %hu bytes)",
+                    "[%c][%cX][-] LH Ver:0x%"PRIx32" DestCid:%s SrcCid:%s Type:R (Token %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     LongHdr->Version,
@@ -728,7 +728,7 @@ QuicPacketLogHeader(
                 (LongHdr->Version == QUIC_VERSION_2 && LongHdr->Type == QUIC_INITIAL_V2)) {
                 QuicTraceLogVerbose(
                     LogPacketLongHeaderInitial,
-                    "[%c][%cX][%llu] LH Ver:0x%x DestCid:%s SrcCid:%s Type:I (Token %hu bytes) (Payload %hu bytes)",
+                    "[%c][%cX][%llu] LH Ver:0x%"PRIx32" DestCid:%s SrcCid:%s Type:I (Token %hu bytes) (Payload %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     PacketNumber,
@@ -740,7 +740,7 @@ QuicPacketLogHeader(
             } else {
                 QuicTraceLogVerbose(
                     LogPacketLongHeader,
-                    "[%c][%cX][%llu] LH Ver:0x%x DestCid:%s SrcCid:%s Type:%s (Payload %hu bytes)",
+                    "[%c][%cX][%llu] LH Ver:0x%"PRIx32" DestCid:%s SrcCid:%s Type:%s (Payload %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     PacketNumber,
@@ -758,7 +758,7 @@ QuicPacketLogHeader(
         default:
             QuicTraceLogVerbose(
                 LogPacketLongHeaderUnsupported,
-                "[%c][%cX][%llu] LH Ver:[UNSUPPORTED,0x%x] DestCid:%s SrcCid:%s",
+                "[%c][%cX][%llu] LH Ver:[UNSUPPORTED,0x%"PRIx32"] DestCid:%s SrcCid:%s",
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber,
