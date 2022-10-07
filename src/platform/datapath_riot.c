@@ -52,7 +52,7 @@ CxPlatDataPathInitialize(uint32_t ClientRecvContextLength,
       (CXPLAT_DATAPATH *)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
 
   if (Datapath == NULL) {
-    QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)",
+    QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%"PRIu32" bytes)",
                    "CXPLAT_DATAPATH", DatapathLength);
     return QUIC_STATUS_OUT_OF_MEMORY;
   }

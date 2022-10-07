@@ -50,9 +50,9 @@ extern "C" {
 // #define ALIGN_UP(length, type)     (ALIGN_DOWN(((unsigned long)(length) +
 // sizeof(type) - 1), type))
 
-// //
-// // Generic stuff.
-// //
+//
+// Generic stuff.
+//
 
 // #define INVALID_SOCKET ((int)(-1))
 

@@ -247,6 +247,9 @@ typedef union QUIC_ADDR {
 
 int _strnicmp(const char *s1, const char *s2, unsigned int sz);
 
+char *hex2str(const uint8_t *const src, const size_t len_src, char *const dst,
+              const size_t len_dst);
+
 // #define sprintf_s(dst, dst_len, format, ...) sprintf(dst, format,
 // __VA_ARGS__) #define _vsnprintf_s(dst, dst_len, flag, format, ...)
 // vsnprintf(dst, dst_len, format, __VA_ARGS__)

@@ -19,6 +19,7 @@ Environment:
 // #endif
 
 #include <random.h>
+#include <stdarg.h>
 
 #include "platform_internal.h"
 #include "quic_platform.h"
@@ -523,4 +524,54 @@ int _strnicmp(const char *s1, const char *s2, unsigned int sz) {
       return res;
   }
   return 0;
+}
+
+char *hex2str(const uint8_t *const src, const size_t len_src, char *const dst,
+              const size_t len_dst) {
+  static const char hex[] = "0123456789abcdef";
+
+  size_t i;
+  for (i = 0; i < len_src && i * 2 + 1 < len_dst; i++) {
+    dst[i * 2] = hex[(src[i] >> 4) & 0x0f];
+    dst[i * 2 + 1] = hex[src[i] & 0x0f];
+  }
+
+  if (i * 2 + 1 <= len_dst)
+    dst[i * 2] = 0;
+  else {
+    size_t l = len_dst;
+    if (l)
+      dst[--l] = 0;
+    if (l)
+      dst[--l] = '.';
+    if (l)
+      dst[--l] = '.';
+    if (l)
+      dst[--l] = '.';
+  }
+
+  return dst;
+}
+
+void clog_printf(const char *format, ...) {
+  char *reformat = strdup(format);
+  CXPLAT_DBG_ASSERT(reformat);
+
+  char *match = reformat;
+  while ((match = strstr(match, "!CID!")) != 0) {
+    *match++ = 's';
+    *match++ = ' ';
+    *match++ = ' ';
+    *match++ = ' ';
+    *match++ = ' ';
+  }
+
+  // TODO: add other replacements
+  CXPLAT_DBG_ASSERT(strstr(reformat, "%!") == 0);
+
+  va_list ap;
+  va_start(ap, format);
+  vprintf(reformat, ap);
+  va_end(ap);
+  free(reformat);
 }

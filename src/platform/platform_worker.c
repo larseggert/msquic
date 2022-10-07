@@ -130,7 +130,7 @@ CxPlatWorkersLazyStart(
     if (CxPlatWorkers == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%"PRIu32" bytes)",
             "CXPLAT_WORKER",
             WorkersSize);
         CxPlatWorkerCount = 0;

@@ -587,7 +587,7 @@ else() #!WIN32
             list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
         elseif (RIOT)
             message(STATUS "Configuring for RIOT tracing")
-            list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_MANIFEST_ETW)
+            list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_RIOT QUIC_LOGS_RIOT)
         else()
             message(STATUS "Configuring for LTTng tracing")
             list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
