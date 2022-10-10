@@ -16,7 +16,7 @@ Abstract:
 #include "platform_internal.h"
 
 typedef struct CXPLAT_HASH {
-    struct Hmac * Mac;
+    struct Hmac Mac;
 } CXPLAT_HASH;
 
 QUIC_STATUS
@@ -98,9 +98,10 @@ CxPlatHashCreate(CXPLAT_HASH_TYPE HashType,
         goto Exit;
     }
 
-    if (wc_HmacSetKey(Hash->Mac, type, Salt, SaltLength) != 0) {
+    const int err = wc_HmacSetKey(&Hash->Mac, type, Salt, SaltLength);
+    if (err != 0) {
         QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
-                       "wc_HmacSetKey failed");
+                       wc_GetErrorString(err));
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -124,15 +125,17 @@ CxPlatHashCompute(CXPLAT_HASH * Hash,
 {
     puts("CxPlatHashCompute");
 
-    if (!wc_HmacUpdate(Hash->Mac, Input, InputLength)) {
+    int err = wc_HmacUpdate(&Hash->Mac, Input, InputLength);
+    if (!err) {
         QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
-                       "wc_HmacUpdate failed");
+                       wc_GetErrorString(err));
         return QUIC_STATUS_INTERNAL_ERROR;
     }
 
-    if (!wc_HmacFinal(Hash->Mac, Output)) {
+    err = wc_HmacFinal(&Hash->Mac, Output);
+    if (!err) {
         QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
-                       "wc_HmacFinal failed");
+                       wc_GetErrorString(err));
         return QUIC_STATUS_INTERNAL_ERROR;
     }
 
