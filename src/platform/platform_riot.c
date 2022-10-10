@@ -39,7 +39,7 @@ Environment:
 
 // CX_PLATFORM CxPlatform = { NULL };
 // int RandomFd = -1; // Used for reading random numbers.
-QUIC_TRACE_RUNDOWN_CALLBACK *QuicTraceRundownCallback;
+QUIC_TRACE_RUNDOWN_CALLBACK * QuicTraceRundownCallback;
 
 // #define STR_HELPER(x) #x
 // #define STR(x) STR_HELPER(x)
@@ -92,109 +92,123 @@ uint64_t CxPlatTotalMemory;
 //     abort();
 // }
 
-void CxPlatSystemLoad(void) { QuicTraceLogInfo(PosixLoaded, "[ dso] Loaded"); }
+void CxPlatSystemLoad(void)
+{
+    QuicTraceLogInfo(PosixLoaded, "[ dso] Loaded");
+}
 
-void CxPlatSystemUnload(void) {
-  QuicTraceLogInfo(PosixUnloaded, "[ dso] Unloaded");
+void CxPlatSystemUnload(void)
+{
+    QuicTraceLogInfo(PosixUnloaded, "[ dso] Unloaded");
 }
 
 // uint64_t CGroupGetMemoryLimit();
 
 QUIC_STATUS
-CxPlatInitialize(void) {
-  random_init(0); // FIXME: use a salt
-  CxPlatWorkersInit();
-  CxPlatTotalMemory = UINT64_MAX;
+CxPlatInitialize(void)
+{
+    random_init(0); // FIXME: use a salt
+    CxPlatWorkersInit();
+    CxPlatTotalMemory = UINT64_MAX;
 
-  QuicTraceLogInfo(PosixInitialized,
-                   "[ dso] Initialized (AvailMem = %llu bytes)",
-                   CxPlatTotalMemory);
+    QuicTraceLogInfo(PosixInitialized,
+                     "[ dso] Initialized (AvailMem = %llu bytes)",
+                     CxPlatTotalMemory);
 
-  return QUIC_STATUS_SUCCESS;
+    return QUIC_STATUS_SUCCESS;
 }
 
-void CxPlatUninitialize(void) {
-  CxPlatWorkersUninit();
-  QuicTraceLogInfo(PosixUninitialized, "[ dso] Uninitialized");
+void CxPlatUninitialize(void)
+{
+    CxPlatWorkersUninit();
+    QuicTraceLogInfo(PosixUninitialized, "[ dso] Uninitialized");
 }
 
-void *CxPlatAlloc(size_t ByteCount, uint32_t Tag) {
-  UNREFERENCED_PARAMETER(Tag);
-  return malloc(ByteCount);
+void * CxPlatAlloc(size_t ByteCount, uint32_t Tag)
+{
+    UNREFERENCED_PARAMETER(Tag);
+    return malloc(ByteCount);
 }
 
-void CxPlatFree(void *Mem, uint32_t Tag) {
-  UNREFERENCED_PARAMETER(Tag);
-  free(Mem);
+void CxPlatFree(void * Mem, uint32_t Tag)
+{
+    UNREFERENCED_PARAMETER(Tag);
+    free(Mem);
 }
 
-void CxPlatRefInitialize(CXPLAT_REF_COUNT *RefCount) { *RefCount = 1; }
-
-void CxPlatRefInitializeEx(CXPLAT_REF_COUNT *RefCount, uint32_t Initial) {
-  *RefCount = (int64_t)Initial;
+void CxPlatRefInitialize(CXPLAT_REF_COUNT * RefCount)
+{
+    *RefCount = 1;
 }
 
-void CxPlatRefIncrement(CXPLAT_REF_COUNT *RefCount) {
-  if (__atomic_add_fetch(RefCount, 1, __ATOMIC_SEQ_CST)) {
-    return;
-  }
+void CxPlatRefInitializeEx(CXPLAT_REF_COUNT * RefCount, uint32_t Initial)
+{
+    *RefCount = (int64_t)Initial;
+}
 
-  CXPLAT_FRE_ASSERT(FALSE);
+void CxPlatRefIncrement(CXPLAT_REF_COUNT * RefCount)
+{
+    if (__atomic_add_fetch(RefCount, 1, __ATOMIC_SEQ_CST)) {
+        return;
+    }
+
+    CXPLAT_FRE_ASSERT(FALSE);
 }
 
 BOOLEAN
-CxPlatRefIncrementNonZero(volatile CXPLAT_REF_COUNT *RefCount, uint32_t Bias) {
-  CXPLAT_REF_COUNT OldValue = *RefCount;
+CxPlatRefIncrementNonZero(volatile CXPLAT_REF_COUNT * RefCount, uint32_t Bias)
+{
+    CXPLAT_REF_COUNT OldValue = *RefCount;
 
-  for (;;) {
-    CXPLAT_REF_COUNT NewValue = OldValue + Bias;
+    for (;;) {
+        CXPLAT_REF_COUNT NewValue = OldValue + Bias;
 
-    if (NewValue > Bias) {
-      if (__atomic_compare_exchange_n(RefCount, &OldValue, NewValue, false,
-                                      __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)) {
+        if (NewValue > Bias) {
+            if (__atomic_compare_exchange_n(RefCount, &OldValue, NewValue,
+                                            false, __ATOMIC_SEQ_CST,
+                                            __ATOMIC_SEQ_CST)) {
+                return TRUE;
+            }
+            continue;
+        }
+
+        if (NewValue == Bias) {
+            return FALSE;
+        }
+
+        CXPLAT_FRE_ASSERT(false);
+        return FALSE;
+    }
+}
+
+BOOLEAN
+CxPlatRefDecrement(CXPLAT_REF_COUNT * RefCount)
+{
+    CXPLAT_REF_COUNT NewValue =
+        __atomic_sub_fetch(RefCount, 1, __ATOMIC_SEQ_CST);
+
+    if (NewValue > 0) {
+        return FALSE;
+    }
+
+    if (NewValue == 0) {
         return TRUE;
-      }
-      continue;
     }
 
-    if (NewValue == Bias) {
-      return FALSE;
-    }
+    CXPLAT_FRE_ASSERT(FALSE);
 
-    CXPLAT_FRE_ASSERT(false);
     return FALSE;
-  }
 }
 
-BOOLEAN
-CxPlatRefDecrement(CXPLAT_REF_COUNT *RefCount) {
-  CXPLAT_REF_COUNT NewValue = __atomic_sub_fetch(RefCount, 1, __ATOMIC_SEQ_CST);
-
-  if (NewValue > 0) {
-    return FALSE;
-  }
-
-  if (NewValue == 0) {
-    return TRUE;
-  }
-
-  CXPLAT_FRE_ASSERT(FALSE);
-
-  return FALSE;
+void CxPlatRundownInitialize(CXPLAT_RUNDOWN_REF * Rundown)
+{
+    CxPlatRefInitialize(&((Rundown)->RefCount));
+    CxPlatEventInitialize(&((Rundown)->RundownComplete), false, false);
 }
-
-// void
-// CxPlatRundownInitialize(
-//     _Inout_ CXPLAT_RUNDOWN_REF* Rundown
-//     )
-// {
-//     CxPlatRefInitialize(&((Rundown)->RefCount));
-//     CxPlatEventInitialize(&((Rundown)->RundownComplete), false, false);
-// }
 
 // void
 // CxPlatRundownInitializeDisabled(
-//     _Inout_ CXPLAT_RUNDOWN_REF* Rundown
+//      CXPLAT_RUNDOWN_REF* Rundown
 //     )
 // {
 //     (Rundown)->RefCount = 0;
@@ -203,47 +217,36 @@ CxPlatRefDecrement(CXPLAT_REF_COUNT *RefCount) {
 
 // void
 // CxPlatRundownReInitialize(
-//     _Inout_ CXPLAT_RUNDOWN_REF* Rundown
+//      CXPLAT_RUNDOWN_REF* Rundown
 //     )
 // {
 //     (Rundown)->RefCount = 1;
 // }
 
-// void
-// CxPlatRundownUninitialize(
-//     _Inout_ CXPLAT_RUNDOWN_REF* Rundown
-//     )
-// {
-//     CxPlatEventUninitialize((Rundown)->RundownComplete);
-// }
+void CxPlatRundownUninitialize(CXPLAT_RUNDOWN_REF * Rundown)
+{
+    CxPlatEventUninitialize((Rundown)->RundownComplete);
+}
 
-// BOOLEAN
-// CxPlatRundownAcquire(
-//     _Inout_ CXPLAT_RUNDOWN_REF* Rundown
-//     )
-// {
-//     return CxPlatRefIncrementNonZero(&(Rundown)->RefCount, 1);
-// }
+BOOLEAN
+CxPlatRundownAcquire(CXPLAT_RUNDOWN_REF * Rundown)
+{
+    return CxPlatRefIncrementNonZero(&(Rundown)->RefCount, 1);
+}
 
-// void
-// CxPlatRundownRelease(
-//     _Inout_ CXPLAT_RUNDOWN_REF* Rundown
-//     )
-// {
-//     if (CxPlatRefDecrement(&(Rundown)->RefCount)) {
-//         CxPlatEventSet((Rundown)->RundownComplete);
-//     }
-// }
+void CxPlatRundownRelease(CXPLAT_RUNDOWN_REF * Rundown)
+{
+    if (CxPlatRefDecrement(&(Rundown)->RefCount)) {
+        CxPlatEventSet((Rundown)->RundownComplete);
+    }
+}
 
-// void
-// CxPlatRundownReleaseAndWait(
-//     _Inout_ CXPLAT_RUNDOWN_REF* Rundown
-//     )
-// {
-//     if (!CxPlatRefDecrement(&(Rundown)->RefCount)) {
-//         CxPlatEventWaitForever((Rundown)->RundownComplete);
-//     }
-// }
+void CxPlatRundownReleaseAndWait(CXPLAT_RUNDOWN_REF * Rundown)
+{
+    if (!CxPlatRefDecrement(&(Rundown)->RefCount)) {
+        CxPlatEventWaitForever((Rundown)->RundownComplete);
+    }
+}
 
 // uint64_t
 // CxPlatTimespecToUs(
@@ -266,8 +269,9 @@ CxPlatRefDecrement(CXPLAT_REF_COUNT *RefCount) {
 //     return CxPlatTimespecToUs(&Res);
 // }
 
-uint64_t CxPlatTimeUs64(void) {
-  return ztimer_now(ZTIMER_MSEC) * CXPLAT_MICROSEC_PER_MS;
+uint64_t CxPlatTimeUs64(void)
+{
+    return ztimer_now(ZTIMER_MSEC) * CXPLAT_MICROSEC_PER_MS;
 }
 
 // void
@@ -329,9 +333,10 @@ uint64_t CxPlatTimeUs64(void) {
 uint32_t CxPlatProcCurrentNumber(void);
 
 QUIC_STATUS
-CxPlatRandom(uint32_t BufferLen, void *Buffer) {
-  random_bytes(Buffer, BufferLen);
-  return QUIC_STATUS_SUCCESS;
+CxPlatRandom(uint32_t BufferLen, void * Buffer)
+{
+    random_bytes(Buffer, BufferLen);
+    return QUIC_STATUS_SUCCESS;
 }
 
 // void
@@ -377,20 +382,25 @@ CxPlatRandom(uint32_t BufferLen, void *Buffer) {
 // }
 
 #ifdef DEBUG
-void CxPlatSetAllocFailDenominator(int32_t Value) {
-  UNREFERENCED_PARAMETER(Value);
+void CxPlatSetAllocFailDenominator(int32_t Value)
+{
+    UNREFERENCED_PARAMETER(Value);
 }
 
-int32_t CxPlatGetAllocFailDenominator() { return 0; }
+int32_t CxPlatGetAllocFailDenominator()
+{
+    return 0;
+}
 #endif
 
 // #if defined(CX_PLATFORM_LINUX)
 
 QUIC_STATUS
-CxPlatThreadCreate(CXPLAT_THREAD_CONFIG *Config, CXPLAT_THREAD *Thread) {
-  UNREFERENCED_PARAMETER(Config);
-  UNREFERENCED_PARAMETER(Thread);
-  return QUIC_STATUS_SUCCESS;
+CxPlatThreadCreate(CXPLAT_THREAD_CONFIG * Config, CXPLAT_THREAD * Thread)
+{
+    UNREFERENCED_PARAMETER(Config);
+    UNREFERENCED_PARAMETER(Thread);
+    return QUIC_STATUS_SUCCESS;
 }
 
 // QUIC_STATUS
@@ -476,11 +486,15 @@ CxPlatThreadCreate(CXPLAT_THREAD_CONFIG *Config, CXPLAT_THREAD *Thread) {
 
 // #endif // CX_PLATFORM
 
-void CxPlatThreadDelete(CXPLAT_THREAD *Thread) {
-  UNREFERENCED_PARAMETER(Thread);
+void CxPlatThreadDelete(CXPLAT_THREAD * Thread)
+{
+    UNREFERENCED_PARAMETER(Thread);
 }
 
-void CxPlatThreadWait(CXPLAT_THREAD *Thread) { UNREFERENCED_PARAMETER(Thread); }
+void CxPlatThreadWait(CXPLAT_THREAD * Thread)
+{
+    UNREFERENCED_PARAMETER(Thread);
+}
 
 // CXPLAT_THREAD_ID
 // CxPlatCurThreadID(
@@ -509,69 +523,76 @@ void CxPlatThreadWait(CXPLAT_THREAD *Thread) { UNREFERENCED_PARAMETER(Thread); }
 // #endif // CX_PLATFORM_DARWIN
 // }
 
-void CxPlatLogAssert(_In_z_ const char *File, _In_ int Line,
-                     _In_z_ const char *Expr) {
-  QuicTraceEvent(LibraryAssert, "[ lib] ASSERT, %u:%s - %s.", (uint32_t)Line,
-                 File, Expr);
+void CxPlatLogAssert(_In_z_ const char * File,
+                     _In_ int Line,
+                     _In_z_ const char * Expr)
+{
+    QuicTraceEvent(LibraryAssert, "[ lib] ASSERT, %u:%s - %s.", (uint32_t)Line,
+                   File, Expr);
 }
 
-int _strnicmp(const char *s1, const char *s2, unsigned int sz) {
-  for (unsigned int i = 0; i < sz; i++) {
-    const unsigned char *us1 = (const unsigned char *)s1;
-    const unsigned char *us2 = (const unsigned char *)s2;
-    const int res = toupper(us1[i]) - toupper(us2[i]);
-    if (res != 0)
-      return res;
-  }
-  return 0;
+int _strnicmp(const char * s1, const char * s2, unsigned int sz)
+{
+    for (unsigned int i = 0; i < sz; i++) {
+        const unsigned char * us1 = (const unsigned char *)s1;
+        const unsigned char * us2 = (const unsigned char *)s2;
+        const int res = toupper(us1[i]) - toupper(us2[i]);
+        if (res != 0)
+            return res;
+    }
+    return 0;
 }
 
-char *hex2str(const uint8_t *const src, const size_t len_src, char *const dst,
-              const size_t len_dst) {
-  static const char hex[] = "0123456789abcdef";
+char * hex2str(const uint8_t * const src,
+               const size_t len_src,
+               char * const dst,
+               const size_t len_dst)
+{
+    static const char hex[] = "0123456789abcdef";
 
-  size_t i;
-  for (i = 0; i < len_src && i * 2 + 1 < len_dst; i++) {
-    dst[i * 2] = hex[(src[i] >> 4) & 0x0f];
-    dst[i * 2 + 1] = hex[src[i] & 0x0f];
-  }
+    size_t i;
+    for (i = 0; i < len_src && i * 2 + 1 < len_dst; i++) {
+        dst[i * 2] = hex[(src[i] >> 4) & 0x0f];
+        dst[i * 2 + 1] = hex[src[i] & 0x0f];
+    }
 
-  if (i * 2 + 1 <= len_dst)
-    dst[i * 2] = 0;
-  else {
-    size_t l = len_dst;
-    if (l)
-      dst[--l] = 0;
-    if (l)
-      dst[--l] = '.';
-    if (l)
-      dst[--l] = '.';
-    if (l)
-      dst[--l] = '.';
-  }
+    if (i * 2 + 1 <= len_dst)
+        dst[i * 2] = 0;
+    else {
+        size_t l = len_dst;
+        if (l)
+            dst[--l] = 0;
+        if (l)
+            dst[--l] = '.';
+        if (l)
+            dst[--l] = '.';
+        if (l)
+            dst[--l] = '.';
+    }
 
-  return dst;
+    return dst;
 }
 
-void clog_printf(const char *format, ...) {
-  char *reformat = strdup(format);
-  CXPLAT_DBG_ASSERT(reformat);
+void clog_printf(const char * format, ...)
+{
+    char * reformat = strdup(format);
+    CXPLAT_DBG_ASSERT(reformat);
 
-  char *match = reformat;
-  while ((match = strstr(match, "!CID!")) != 0) {
-    *match++ = 's';
-    *match++ = ' ';
-    *match++ = ' ';
-    *match++ = ' ';
-    *match++ = ' ';
-  }
+    char * match = reformat;
+    while ((match = strstr(match, "!CID!")) != 0) {
+        *match++ = 's';
+        *match++ = ' ';
+        *match++ = ' ';
+        *match++ = ' ';
+        *match++ = ' ';
+    }
 
-  // TODO: add other replacements
-  CXPLAT_DBG_ASSERT(strstr(reformat, "%!") == 0);
+    // TODO: add other replacements
+    CXPLAT_DBG_ASSERT(strstr(reformat, "%!") == 0);
 
-  va_list ap;
-  va_start(ap, format);
-  vprintf(reformat, ap);
-  va_end(ap);
-  free(reformat);
+    va_list ap;
+    va_start(ap, format);
+    vprintf(reformat, ap);
+    va_end(ap);
+    free(reformat);
 }

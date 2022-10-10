@@ -29,6 +29,7 @@ Environment:
 #define _SYS_TIME_H_
 
 #include <cond.h>
+#include <event.h>
 #include <mutex.h>
 #include <stdint.h>
 #include <ztimer.h>
@@ -56,7 +57,6 @@ extern "C" {
 
 #define UNREFERENCED_PARAMETER(P) (void)(P)
 
-
 #if defined(__GNUC__) && __GNUC__ >= 7
 #define __fallthrough __attribute__((fallthrough))
 #else
@@ -67,12 +67,14 @@ extern "C" {
 // Interlocked implementations.
 //
 
-inline long InterlockedIncrement(_Interlocked_operand_ long volatile *Addend) {
-  return __sync_add_and_fetch(Addend, (long)1);
+inline long InterlockedIncrement(_Interlocked_operand_ long volatile * Addend)
+{
+    return __sync_add_and_fetch(Addend, (long)1);
 }
 
-inline long InterlockedDecrement(_Interlocked_operand_ long volatile *Addend) {
-  return __sync_sub_and_fetch(Addend, (long)1);
+inline long InterlockedDecrement(_Interlocked_operand_ long volatile * Addend)
+{
+    return __sync_sub_and_fetch(Addend, (long)1);
 }
 
 // inline
@@ -96,15 +98,18 @@ inline long InterlockedDecrement(_Interlocked_operand_ long volatile *Addend) {
 // }
 
 inline int64_t
-InterlockedExchangeAdd64(_Interlocked_operand_ int64_t volatile *Addend,
-                         int64_t Value) {
-  return __sync_fetch_and_add(Addend, Value);
+InterlockedExchangeAdd64(_Interlocked_operand_ int64_t volatile * Addend,
+                         int64_t Value)
+{
+    return __sync_fetch_and_add(Addend, Value);
 }
 
 inline short
-InterlockedCompareExchange16(_Interlocked_operand_ short volatile *Destination,
-                             short ExChange, short Comperand) {
-  return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
+InterlockedCompareExchange16(_Interlocked_operand_ short volatile * Destination,
+                             short ExChange,
+                             short Comperand)
+{
+    return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
 }
 
 // inline
@@ -119,34 +124,41 @@ InterlockedCompareExchange16(_Interlocked_operand_ short volatile *Destination,
 // }
 
 inline int64_t InterlockedCompareExchange64(
-    _Interlocked_operand_ int64_t volatile *Destination, int64_t ExChange,
-    int64_t Comperand) {
-  return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
+    _Interlocked_operand_ int64_t volatile * Destination,
+    int64_t ExChange,
+    int64_t Comperand)
+{
+    return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
 }
 
-inline BOOLEAN InterlockedFetchAndClearBoolean(
-    _Interlocked_operand_ BOOLEAN volatile *Target) {
-  return __sync_fetch_and_and(Target, 0);
+inline BOOLEAN
+InterlockedFetchAndClearBoolean(_Interlocked_operand_ BOOLEAN volatile * Target)
+{
+    return __sync_fetch_and_and(Target, 0);
 }
 
 inline void *
-InterlockedFetchAndClearPointer(_Interlocked_operand_ void *volatile *Target) {
-  return __sync_fetch_and_and(Target, 0);
+InterlockedFetchAndClearPointer(_Interlocked_operand_ void * volatile * Target)
+{
+    return __sync_fetch_and_and(Target, 0);
 }
 
 inline short
-InterlockedIncrement16(_Interlocked_operand_ short volatile *Addend) {
-  return __sync_add_and_fetch(Addend, (short)1);
+InterlockedIncrement16(_Interlocked_operand_ short volatile * Addend)
+{
+    return __sync_add_and_fetch(Addend, (short)1);
 }
 
 inline short
-InterlockedDecrement16(_Interlocked_operand_ short volatile *Addend) {
-  return __sync_sub_and_fetch(Addend, (short)1);
+InterlockedDecrement16(_Interlocked_operand_ short volatile * Addend)
+{
+    return __sync_sub_and_fetch(Addend, (short)1);
 }
 
 inline int64_t
-InterlockedIncrement64(_Interlocked_operand_ int64_t volatile *Addend) {
-  return __sync_add_and_fetch(Addend, (int64_t)1);
+InterlockedIncrement64(_Interlocked_operand_ int64_t volatile * Addend)
+{
+    return __sync_add_and_fetch(Addend, (int64_t)1);
 }
 
 #define QuicReadPtrNoFence(p) ((void *)(*p))
@@ -155,20 +167,17 @@ InterlockedIncrement64(_Interlocked_operand_ int64_t volatile *Addend) {
 // Assertion interfaces.
 //
 
-// __attribute__((noinline, noreturn)) void
-// quic_bugcheck(const char *File, int Line, const char *Expr);
-
 #define quic_bugcheck(...) abort()
 
-void CxPlatLogAssert(const char *File, int Line, const char *Expr);
+void CxPlatLogAssert(const char * File, int Line, const char * Expr);
 
 #define CXPLAT_STATIC_ASSERT(X, Y) static_assert(X, Y);
 #define CXPLAT_ANALYSIS_ASSERT(X)
 #define CXPLAT_ANALYSIS_ASSUME(X)
 #define CXPLAT_FRE_ASSERT(exp)                                                 \
-  ((exp) ? (void)0                                                             \
-         : (CxPlatLogAssert(__FILE__, __LINE__, #exp),                         \
-            quic_bugcheck(__FILE__, __LINE__, #exp)));
+    ((exp) ? (void)0                                                           \
+           : (CxPlatLogAssert(__FILE__, __LINE__, #exp),                       \
+              quic_bugcheck(__FILE__, __LINE__, #exp)));
 #define CXPLAT_FRE_ASSERTMSG(exp, Y) CXPLAT_FRE_ASSERT(exp)
 
 #ifdef DEBUG
@@ -184,7 +193,7 @@ void CxPlatLogAssert(const char *File, int Line, const char *Expr);
 #define CXPLAT_TEL_ASSERTMSG(exp, Y) CXPLAT_FRE_ASSERT(exp)
 #define CXPLAT_TEL_ASSERTMSG_ARGS(exp, _msg, _origin, _bucketArg1,             \
                                   _bucketArg2)                                 \
-  CXPLAT_FRE_ASSERT(exp)
+    CXPLAT_FRE_ASSERT(exp)
 #else
 #define CXPLAT_TEL_ASSERT(exp)
 #define CXPLAT_TEL_ASSERTMSG(exp, Y)
@@ -210,9 +219,9 @@ void CxPlatLogAssert(const char *File, int Line, const char *Expr);
 
 extern uint64_t CxPlatTotalMemory;
 
-_Ret_maybenull_ void *CxPlatAlloc(size_t ByteCount, uint32_t Tag);
+_Ret_maybenull_ void * CxPlatAlloc(size_t ByteCount, uint32_t Tag);
 
-void CxPlatFree(__drv_freesMem(Mem) _Frees_ptr_ void *Mem, uint32_t Tag);
+void CxPlatFree(__drv_freesMem(Mem) _Frees_ptr_ void * Mem, uint32_t Tag);
 
 #define CXPLAT_ALLOC_PAGED(Size, Tag) malloc(Size)
 #define CXPLAT_ALLOC_NONPAGED(Size, Tag) malloc(Size)
@@ -220,9 +229,9 @@ void CxPlatFree(__drv_freesMem(Mem) _Frees_ptr_ void *Mem, uint32_t Tag);
 
 #define CxPlatZeroMemory(Destination, Length) memset((Destination), 0, (Length))
 #define CxPlatCopyMemory(Destination, Source, Length)                          \
-  memcpy((Destination), (Source), (Length))
+    memcpy((Destination), (Source), (Length))
 #define CxPlatMoveMemory(Destination, Source, Length)                          \
-  memmove((Destination), (Source), (Length))
+    memmove((Destination), (Source), (Length))
 #define CxPlatSecureZeroMemory CxPlatZeroMemory // TODO - Something better?
 
 #define CxPlatByteSwapUint16(value) __builtin_bswap16((unsigned short)(value))
@@ -238,40 +247,34 @@ void CxPlatFree(__drv_freesMem(Mem) _Frees_ptr_ void *Mem, uint32_t Tag);
 //
 
 typedef struct CXPLAT_LOCK {
-  // mutex_t Mutex;
+    mutex_t Mutex;
 } CXPLAT_LOCK;
 
-#define CxPlatLockInitialize(Lock) // mutex_init(&(Lock)->Mutex)
+#define CxPlatLockInitialize(Lock) mutex_init(&(Lock)->Mutex)
 
 #define CxPlatLockUninitialize(Lock)
 
-#define CxPlatLockAcquire(Lock) // mutex_lock(&(Lock)->Mutex)
+#define CxPlatLockAcquire(Lock) mutex_lock(&(Lock)->Mutex)
 
-#define CxPlatLockRelease(Lock) // mutex_unlock(&(Lock)->Mutex)
+#define CxPlatLockRelease(Lock) mutex_unlock(&(Lock)->Mutex)
 
 typedef CXPLAT_LOCK CXPLAT_DISPATCH_LOCK;
 
-// #define CxPlatDispatchLockInitialize CxPlatLockInitialize
+#define CxPlatDispatchLockInitialize CxPlatLockInitialize
 
-// #define CxPlatDispatchLockUninitialize CxPlatLockUninitialize
+#define CxPlatDispatchLockUninitialize CxPlatLockUninitialize
 
-// #define CxPlatDispatchLockAcquire CxPlatLockAcquire
+#define CxPlatDispatchLockAcquire CxPlatLockAcquire
 
-// #define CxPlatDispatchLockRelease CxPlatLockRelease
-
-#define CxPlatDispatchLockInitialize(...)
-#define CxPlatDispatchLockUninitialize(...)
-#define CxPlatDispatchLockAcquire(...)
-#define CxPlatDispatchLockRelease(...)
+#define CxPlatDispatchLockRelease CxPlatLockRelease
 
 //
 // Represents a QUIC RW lock.
 //
 
 typedef struct CXPLAT_RW_LOCK {
-
-  //     pthread_rwlock_t RwLock;
-  uint8_t RwLock;
+    //     pthread_rwlock_t RwLock;
+    uint8_t RwLock;
 
 } CXPLAT_RW_LOCK;
 
@@ -307,80 +310,86 @@ typedef CXPLAT_RW_LOCK CXPLAT_DISPATCH_RW_LOCK;
 //
 
 FORCEINLINE
-void CxPlatListPushEntry(CXPLAT_SLIST_ENTRY *ListHead,
-                         __drv_aliasesMem CXPLAT_SLIST_ENTRY *Entry);
+void CxPlatListPushEntry(CXPLAT_SLIST_ENTRY * ListHead,
+                         __drv_aliasesMem CXPLAT_SLIST_ENTRY * Entry);
 
 FORCEINLINE
-CXPLAT_SLIST_ENTRY *CxPlatListPopEntry(CXPLAT_SLIST_ENTRY *ListHead);
+CXPLAT_SLIST_ENTRY * CxPlatListPopEntry(CXPLAT_SLIST_ENTRY * ListHead);
 
 typedef struct CXPLAT_POOL {
-  // List of free entries.
-  CXPLAT_SLIST_ENTRY ListHead;
+    // List of free entries.
+    CXPLAT_SLIST_ENTRY ListHead;
 
-  // Number of free entries in the list.
-  uint16_t ListDepth;
+    // Number of free entries in the list.
+    uint16_t ListDepth;
 
-  // Lock to synchronize access to the List.
-  // LINUX_TODO: Check how to make this lock free?
-  CXPLAT_LOCK Lock;
+    // Lock to synchronize access to the List.
+    // LINUX_TODO: Check how to make this lock free?
+    CXPLAT_LOCK Lock;
 
-  // Size of entries.
-  uint32_t Size;
+    // Size of entries.
+    uint32_t Size;
 
-  // The memory tag to use for any allocation from this pool.
-  uint32_t Tag;
+    // The memory tag to use for any allocation from this pool.
+    uint32_t Tag;
 } CXPLAT_POOL;
 
 #define CXPLAT_POOL_MAXIMUM_DEPTH                                              \
-  256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
+    256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
 
-inline void CxPlatPoolInitialize(BOOLEAN IsPaged, uint32_t Size, uint32_t Tag,
-                                 CXPLAT_POOL *Pool) {
-  Pool->Size = Size;
-  Pool->Tag = Tag;
-  CxPlatLockInitialize(&Pool->Lock);
-  Pool->ListDepth = 0;
-  CxPlatZeroMemory(&Pool->ListHead, sizeof(Pool->ListHead));
-  UNREFERENCED_PARAMETER(IsPaged);
+static inline void CxPlatPoolInitialize(BOOLEAN IsPaged,
+                                        uint32_t Size,
+                                        uint32_t Tag,
+                                        CXPLAT_POOL * Pool)
+{
+    Pool->Size = Size;
+    Pool->Tag = Tag;
+    CxPlatLockInitialize(&Pool->Lock);
+    Pool->ListDepth = 0;
+    CxPlatZeroMemory(&Pool->ListHead, sizeof(Pool->ListHead));
+    UNREFERENCED_PARAMETER(IsPaged);
 }
 
-inline void CxPlatPoolUninitialize(CXPLAT_POOL *Pool) {
-  void *Entry;
-  CxPlatLockAcquire(&Pool->Lock);
-  while ((Entry = CxPlatListPopEntry(&Pool->ListHead)) != NULL) {
-    CXPLAT_FRE_ASSERT(Pool->ListDepth > 0);
-    Pool->ListDepth--;
-    CxPlatLockRelease(&Pool->Lock);
-    CxPlatFree(Entry, Pool->Tag);
+inline void CxPlatPoolUninitialize(CXPLAT_POOL * Pool)
+{
+    void * Entry;
     CxPlatLockAcquire(&Pool->Lock);
-  }
-  CxPlatLockRelease(&Pool->Lock);
-  CxPlatLockUninitialize(&Pool->Lock);
-}
-
-inline void *CxPlatPoolAlloc(CXPLAT_POOL *Pool) {
-  CxPlatLockAcquire(&Pool->Lock);
-  void *Entry = CxPlatListPopEntry(&Pool->ListHead);
-  if (Entry != NULL) {
-    CXPLAT_FRE_ASSERT(Pool->ListDepth > 0);
-    Pool->ListDepth--;
-  }
-  CxPlatLockRelease(&Pool->Lock);
-  if (Entry == NULL) {
-    Entry = CxPlatAlloc(Pool->Size, Pool->Tag);
-  }
-  return Entry;
-}
-
-inline void CxPlatPoolFree(CXPLAT_POOL *Pool, void *Entry) {
-  if (Pool->ListDepth >= CXPLAT_POOL_MAXIMUM_DEPTH) {
-    CxPlatFree(Entry, Pool->Tag);
-  } else {
-    CxPlatLockAcquire(&Pool->Lock);
-    CxPlatListPushEntry(&Pool->ListHead, (CXPLAT_SLIST_ENTRY *)Entry);
-    Pool->ListDepth++;
+    while ((Entry = CxPlatListPopEntry(&Pool->ListHead)) != NULL) {
+        CXPLAT_FRE_ASSERT(Pool->ListDepth > 0);
+        Pool->ListDepth--;
+        CxPlatLockRelease(&Pool->Lock);
+        CxPlatFree(Entry, Pool->Tag);
+        CxPlatLockAcquire(&Pool->Lock);
+    }
     CxPlatLockRelease(&Pool->Lock);
-  }
+    CxPlatLockUninitialize(&Pool->Lock);
+}
+
+inline void * CxPlatPoolAlloc(CXPLAT_POOL * Pool)
+{
+    CxPlatLockAcquire(&Pool->Lock);
+    void * Entry = CxPlatListPopEntry(&Pool->ListHead);
+    if (Entry != NULL) {
+        CXPLAT_FRE_ASSERT(Pool->ListDepth > 0);
+        Pool->ListDepth--;
+    }
+    CxPlatLockRelease(&Pool->Lock);
+    if (Entry == NULL) {
+        Entry = CxPlatAlloc(Pool->Size, Pool->Tag);
+    }
+    return Entry;
+}
+
+inline void CxPlatPoolFree(CXPLAT_POOL * Pool, void * Entry)
+{
+    if (Pool->ListDepth >= CXPLAT_POOL_MAXIMUM_DEPTH) {
+        CxPlatFree(Entry, Pool->Tag);
+    } else {
+        CxPlatLockAcquire(&Pool->Lock);
+        CxPlatListPushEntry(&Pool->ListHead, (CXPLAT_SLIST_ENTRY *)Entry);
+        Pool->ListDepth++;
+        CxPlatLockRelease(&Pool->Lock);
+    }
 }
 
 //
@@ -389,17 +398,17 @@ inline void CxPlatPoolFree(CXPLAT_POOL *Pool, void *Entry) {
 
 typedef uint32_t CXPLAT_REF_COUNT;
 
-void CxPlatRefInitialize(CXPLAT_REF_COUNT *RefCount);
+void CxPlatRefInitialize(CXPLAT_REF_COUNT * RefCount);
 
-void CxPlatRefInitializeEx(CXPLAT_REF_COUNT *RefCount, uint32_t Initial);
+void CxPlatRefInitializeEx(CXPLAT_REF_COUNT * RefCount, uint32_t Initial);
 
-void CxPlatRefIncrement(CXPLAT_REF_COUNT *RefCount);
-
-BOOLEAN
-CxPlatRefIncrementNonZero(volatile CXPLAT_REF_COUNT *RefCount, uint32_t Bias);
+void CxPlatRefIncrement(CXPLAT_REF_COUNT * RefCount);
 
 BOOLEAN
-CxPlatRefDecrement(CXPLAT_REF_COUNT *RefCount);
+CxPlatRefIncrementNonZero(volatile CXPLAT_REF_COUNT * RefCount, uint32_t Bias);
+
+BOOLEAN
+CxPlatRefDecrement(CXPLAT_REF_COUNT * RefCount);
 
 #define CxPlatRefUninitialize(RefCount)
 
@@ -429,40 +438,39 @@ uint64_t CxPlatTimeUs64(void);
 #define CxPlatTimeMs32() (uint32_t) CxPlatTimeMs64()
 #define CxPlatTimeUs64ToPlat(x) (x)
 
-static inline int64_t CxPlatTimeEpochMs64(void) {
-  return ztimer_now(ZTIMER_MSEC);
+static inline int64_t CxPlatTimeEpochMs64(void)
+{
+    return ztimer_now(ZTIMER_MSEC);
 }
 
-inline uint64_t CxPlatTimeDiff64(uint64_t T1, uint64_t T2) {
-  //
-  // Assume no wrap around.
-  //
-
-  return T2 - T1;
+inline uint64_t CxPlatTimeDiff64(uint64_t T1, uint64_t T2)
+{
+    // Assume no wrap around.
+    return T2 - T1;
 }
 
 inline uint32_t QUIC_NO_SANITIZE("unsigned-integer-overflow")
     CxPlatTimeDiff32(uint32_t T1, // First time measured
                      uint32_t T2  // Second time measured
-    ) {
-  if (T2 > T1) {
-    return T2 - T1;
-  } else { // Wrap around case.
-    return T2 + (0xFFFFFFFF - T1) + 1;
-  }
+    )
+{
+    if (T2 > T1) {
+        return T2 - T1;
+    } else { // Wrap around case.
+        return T2 + (0xFFFFFFFF - T1) + 1;
+    }
 }
 
-inline BOOLEAN CxPlatTimeAtOrBefore64(uint64_t T1, uint64_t T2) {
-  //
-  // Assume no wrap around.
-  //
-
-  return T1 <= T2;
+inline BOOLEAN CxPlatTimeAtOrBefore64(uint64_t T1, uint64_t T2)
+{
+    // Assume no wrap around.
+    return T1 <= T2;
 }
 
 inline BOOLEAN QUIC_NO_SANITIZE("unsigned-integer-overflow")
-    CxPlatTimeAtOrBefore32(uint32_t T1, uint32_t T2) {
-  return (int32_t)(T1 - T2) <= 0;
+    CxPlatTimeAtOrBefore32(uint32_t T1, uint32_t T2)
+{
+    return (int32_t)(T1 - T2) <= 0;
 }
 
 // void
@@ -470,7 +478,7 @@ inline BOOLEAN QUIC_NO_SANITIZE("unsigned-integer-overflow")
 //      uint32_t DurationMs
 //     );
 
-#define CxPlatSchedulerYield() // sched_yield()
+#define CxPlatSchedulerYield() sched_yield()
 
 //
 // Event Interfaces
@@ -481,95 +489,100 @@ inline BOOLEAN QUIC_NO_SANITIZE("unsigned-integer-overflow")
 //
 
 typedef struct CXPLAT_EVENT {
-  // Mutex and condition.
-  mutex_t Mutex;
-  cond_t Cond;
+    // Mutex and condition.
+    mutex_t Mutex;
+    cond_t Cond;
 
-  // Denotes if the event object is in signaled state.
-  BOOLEAN Signaled;
+    // Denotes if the event object is in signaled state.
+    BOOLEAN Signaled;
 
-  // Denotes if the event object should be auto reset after it's signaled.
-  BOOLEAN AutoReset;
+    // Denotes if the event object should be auto reset after it's signaled.
+    BOOLEAN AutoReset;
 } CXPLAT_EVENT;
 
-static inline void CxPlatEventInitialize(CXPLAT_EVENT *Event,
+static inline void CxPlatEventInitialize(CXPLAT_EVENT * Event,
                                          BOOLEAN ManualReset,
-                                         BOOLEAN InitialState) {
-  Event->AutoReset = !ManualReset;
-  Event->Signaled = InitialState;
+                                         BOOLEAN InitialState)
+{
+    Event->AutoReset = !ManualReset;
+    Event->Signaled = InitialState;
 
-  mutex_init(&Event->Mutex);
-  cond_init(&Event->Cond);
+    mutex_init(&Event->Mutex);
+    cond_init(&Event->Cond);
 }
 
-inline void CxPlatInternalEventUninitialize(CXPLAT_EVENT *Event) {}
+inline void CxPlatInternalEventUninitialize(CXPLAT_EVENT * Event) {}
 
-inline void CxPlatInternalEventSet(CXPLAT_EVENT *Event) {
-  mutex_lock(&Event->Mutex);
-  Event->Signaled = true;
+inline void CxPlatInternalEventSet(CXPLAT_EVENT * Event)
+{
+    mutex_lock(&Event->Mutex);
+    Event->Signaled = true;
 
-  // Signal the condition while holding the lock for predictable scheduling,
-  // better performance and removing possibility of use after free for the
-  // condition.
-  cond_broadcast(&Event->Cond);
+    // Signal the condition while holding the lock for predictable scheduling,
+    // better performance and removing possibility of use after free for the
+    // condition.
+    cond_broadcast(&Event->Cond);
 
-  mutex_unlock(&Event->Mutex);
+    mutex_unlock(&Event->Mutex);
 }
 
-inline void CxPlatInternalEventReset(CXPLAT_EVENT *Event) {
-  mutex_lock(&Event->Mutex);
-  Event->Signaled = false;
-  mutex_unlock(&Event->Mutex);
-}
-
-inline void CxPlatInternalEventWaitForever(CXPLAT_EVENT *Event) {
-
-  mutex_lock(&Event->Mutex);
-
-  // Spurious wake ups from cond_wait can occur. So the function needs
-  // to be called in a loop until the predicate 'Signalled' is satisfied.
-  while (!Event->Signaled) {
-    cond_wait(&Event->Cond, &Event->Mutex);
-  }
-
-  if (Event->AutoReset) {
+inline void CxPlatInternalEventReset(CXPLAT_EVENT * Event)
+{
+    mutex_lock(&Event->Mutex);
     Event->Signaled = false;
-  }
-
-  mutex_unlock(&Event->Mutex);
+    mutex_unlock(&Event->Mutex);
 }
 
-inline BOOLEAN CxPlatInternalEventWaitWithTimeout(CXPLAT_EVENT *Event,
-                                                  uint32_t TimeoutMs) {
-  BOOLEAN WaitSatisfied = FALSE;
-  // struct timespec Ts = {0, 0};
+inline void CxPlatInternalEventWaitForever(CXPLAT_EVENT * Event)
+{
 
-  // Get absolute time.
-  // CxPlatGetAbsoluteTime(TimeoutMs, &Ts);
+    mutex_lock(&Event->Mutex);
 
-  mutex_lock(&Event->Mutex);
+    // Spurious wake ups from cond_wait can occur. So the function needs
+    // to be called in a loop until the predicate 'Signalled' is satisfied.
+    while (!Event->Signaled) {
+        cond_wait(&Event->Cond, &Event->Mutex);
+    }
 
-  while (!Event->Signaled) {
-    // FIXME: cond_timedwait(&Event->Cond, &Event->Mutex, &Ts);
-    cond_wait(&Event->Cond, &Event->Mutex);
+    if (Event->AutoReset) {
+        Event->Signaled = false;
+    }
 
-    // if (Result == ETIMEDOUT) {
-    //   WaitSatisfied = FALSE;
-    //   goto Exit;
-    // }
-  }
+    mutex_unlock(&Event->Mutex);
+}
 
-  if (Event->AutoReset) {
-    Event->Signaled = FALSE;
-  }
+inline BOOLEAN CxPlatInternalEventWaitWithTimeout(CXPLAT_EVENT * Event,
+                                                  uint32_t TimeoutMs)
+{
+    BOOLEAN WaitSatisfied = FALSE;
+    // struct timespec Ts = {0, 0};
 
-  WaitSatisfied = TRUE;
+    // Get absolute time.
+    // CxPlatGetAbsoluteTime(TimeoutMs, &Ts);
 
-  // Exit:
+    mutex_lock(&Event->Mutex);
 
-  mutex_unlock(&Event->Mutex);
+    while (!Event->Signaled) {
+        // FIXME: cond_timedwait(&Event->Cond, &Event->Mutex, &Ts);
+        cond_wait(&Event->Cond, &Event->Mutex);
 
-  return WaitSatisfied;
+        // if (Result == ETIMEDOUT) {
+        //   WaitSatisfied = FALSE;
+        //   goto Exit;
+        // }
+    }
+
+    if (Event->AutoReset) {
+        Event->Signaled = FALSE;
+    }
+
+    WaitSatisfied = TRUE;
+
+    // Exit:
+
+    mutex_unlock(&Event->Mutex);
+
+    return WaitSatisfied;
 }
 
 #define CxPlatEventUninitialize(Event) CxPlatInternalEventUninitialize(&Event)
@@ -577,7 +590,7 @@ inline BOOLEAN CxPlatInternalEventWaitWithTimeout(CXPLAT_EVENT *Event,
 #define CxPlatEventReset(Event) CxPlatInternalEventReset(&Event)
 #define CxPlatEventWaitForever(Event) CxPlatInternalEventWaitForever(&Event)
 #define CxPlatEventWaitWithTimeout(Event, TimeoutMs)                           \
-  CxPlatInternalEventWaitWithTimeout(&Event, TimeoutMs)
+    CxPlatInternalEventWaitWithTimeout(&Event, TimeoutMs)
 
 //
 // Event Queue Interfaces
@@ -586,51 +599,60 @@ inline BOOLEAN CxPlatInternalEventWaitWithTimeout(CXPLAT_EVENT *Event,
 // typedef struct io_uring CXPLAT_EVENTQ;
 // typedef struct io_uring_cqe* CXPLAT_CQE;
 
-typedef uint8_t CXPLAT_EVENTQ;
-typedef uint8_t CXPLAT_CQE;
+typedef event_queue_t CXPLAT_EVENTQ;
+#define CXPLAT_SQE int
+typedef event_t CXPLAT_CQE;
 
-static inline BOOLEAN CxPlatEventQInitialize(CXPLAT_EVENTQ *queue) {
-  UNREFERENCED_PARAMETER(queue);
-
-  return TRUE;
+static inline BOOLEAN CxPlatEventQInitialize(CXPLAT_EVENTQ * queue)
+{
+    event_queue_init(queue);
+    return TRUE;
 }
 
-static inline void CxPlatEventQCleanup(CXPLAT_EVENTQ *queue) {
-  UNREFERENCED_PARAMETER(queue);
+static inline void CxPlatEventQCleanup(CXPLAT_EVENTQ * queue)
+{
+    UNREFERENCED_PARAMETER(queue);
 }
 
-static inline BOOLEAN _CxPlatEventQEnqueue(CXPLAT_EVENTQ *queue,
-                                           void *user_data) {
-  UNREFERENCED_PARAMETER(queue);
-  UNREFERENCED_PARAMETER(user_data);
-
-  return TRUE;
+inline BOOLEAN
+CxPlatEventQEnqueue(CXPLAT_EVENTQ * queue, CXPLAT_SQE *, void * user_data)
+{
+    event_post(queue, user_data);
+    puts("TODO CxPlatEventQEnqueue");
+    return TRUE;
 }
 
-#define CxPlatEventQEnqueue(queue, sqe, user_data)                             \
-  _CxPlatEventQEnqueue(queue, user_data)
-
-static inline uint32_t CxPlatEventQDequeue(CXPLAT_EVENTQ *queue,
-                                           CXPLAT_CQE *events, uint32_t count,
+static inline uint32_t CxPlatEventQDequeue(CXPLAT_EVENTQ * queue,
+                                           CXPLAT_CQE * events,
+                                           uint32_t count,
                                            uint32_t wait_time // milliseconds
-) {
-  UNREFERENCED_PARAMETER(queue);
-  UNREFERENCED_PARAMETER(events);
-  UNREFERENCED_PARAMETER(count);
-  UNREFERENCED_PARAMETER(wait_time);
+)
+{
+    UNREFERENCED_PARAMETER(count);
 
-  return 0;
+    puts("TODO CxPlatEventQDequeue");
+    if (wait_time == UINT32_MAX) {
+        *events = *event_wait(queue);
+    } else {
+        *events = *event_wait_timeout_ztimer(queue, ZTIMER_MSEC, wait_time);
+    }
+    return 0;
 }
 
-inline void CxPlatEventQReturn(CXPLAT_EVENTQ *queue, uint32_t count) {
-  UNREFERENCED_PARAMETER(queue);
-  UNREFERENCED_PARAMETER(count);
+inline void CxPlatEventQReturn(CXPLAT_EVENTQ * queue, uint32_t count)
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(count);
+
+    puts("TODO CxPlatEventQReturn");
 }
 
-inline void *CxPlatCqeUserData(const CXPLAT_CQE *cqe) {
-  UNREFERENCED_PARAMETER(cqe);
+inline void * CxPlatCqeUserData(const CXPLAT_CQE * cqe)
+{
+    UNREFERENCED_PARAMETER(cqe);
 
-  return 0;
+    puts("TODO CxPlatCqeUserData");
+    return 0;
 }
 
 //
@@ -641,60 +663,42 @@ inline void *CxPlatCqeUserData(const CXPLAT_CQE *cqe) {
 // QUIC thread object.
 //
 
-// typedef pthread_t CXPLAT_THREAD;
+typedef pthread_t CXPLAT_THREAD;
 // typedef thread_t CXPLAT_THREAD;
-typedef uint8_t CXPLAT_THREAD;
+// typedef uint8_t CXPLAT_THREAD;
+
+// typedef struct CXPLAT_THREAD {
+//   thread_t Thread;
+// } CXPLAT_THREAD;
 
 #define CXPLAT_THREAD_CALLBACK(FuncName, CtxVarName)                           \
-  void *FuncName(void *CtxVarName)
+    void * FuncName(void * CtxVarName)
 
 #define CXPLAT_THREAD_RETURN(Status) return NULL;
 
-typedef void *(*LPTHREAD_START_ROUTINE)(void *);
+typedef void * (*LPTHREAD_START_ROUTINE)(void *);
 
 typedef struct CXPLAT_THREAD_CONFIG {
-  uint16_t Flags;
-  uint16_t IdealProcessor;
-  _Field_z_ const char *Name;
-  LPTHREAD_START_ROUTINE Callback;
-  void *Context;
+    uint16_t Flags;
+    uint16_t IdealProcessor;
+    _Field_z_ const char * Name;
+    LPTHREAD_START_ROUTINE Callback;
+    void * Context;
 } CXPLAT_THREAD_CONFIG;
 
-// #ifdef CXPLAT_USE_CUSTOM_THREAD_CONTEXT
-
-// //
-// // Extension point that allows additional platform specific logic to be
-// executed
-// // for every thread created. The platform must define
-// CXPLAT_USE_CUSTOM_THREAD_CONTEXT
-// // and implement the CxPlatThreadCustomStart function.
-// CxPlatThreadCustomStart MUST
-// // call the Callback passed in. CxPlatThreadCustomStart MUST also free
-// // CustomContext (via CXPLAT_FREE(CustomContext, QUIC_POOL_CUSTOM_THREAD))
-// before
-// // returning.
-// //
-
-// typedef struct CXPLAT_THREAD_CUSTOM_CONTEXT {
-//     LPTHREAD_START_ROUTINE Callback;
-//     void* Context;
-// } CXPLAT_THREAD_CUSTOM_CONTEXT;
-
-// CXPLAT_THREAD_CALLBACK(CxPlatThreadCustomStart, CustomContext); //
-// CXPLAT_THREAD_CUSTOM_CONTEXT* CustomContext
-
-// #endif // CXPLAT_USE_CUSTOM_THREAD_CONTEXT
-
 QUIC_STATUS
-CxPlatThreadCreate(CXPLAT_THREAD_CONFIG *Config, CXPLAT_THREAD *Thread);
+CxPlatThreadCreate(CXPLAT_THREAD_CONFIG * Config, CXPLAT_THREAD * Thread);
 
-void CxPlatThreadDelete(CXPLAT_THREAD *Thread);
+void CxPlatThreadDelete(CXPLAT_THREAD * Thread);
 
-void CxPlatThreadWait(CXPLAT_THREAD *Thread);
+void CxPlatThreadWait(CXPLAT_THREAD * Thread);
 
 typedef uint8_t CXPLAT_THREAD_ID;
 
-static inline CXPLAT_THREAD_ID CxPlatCurThreadID(void) { return 0; }
+static inline CXPLAT_THREAD_ID CxPlatCurThreadID(void)
+{
+    return 0;
+}
 
 //
 // Processor Count and Index.
@@ -705,31 +709,27 @@ static inline CXPLAT_THREAD_ID CxPlatCurThreadID(void) { return 0; }
 #define CxPlatProcMaxCount() 1
 #define CxPlatProcActiveCount() 1
 
-inline uint32_t CxPlatProcCurrentNumber(void) { return 0; }
+inline uint32_t CxPlatProcCurrentNumber(void)
+{
+    return 0;
+}
 
 //
 // Rundown Protection Interfaces.
 //
 
-typedef uint8_t CXPLAT_RUNDOWN_REF;
-// typedef struct CXPLAT_RUNDOWN_REF {
+// typedef uint8_t CXPLAT_RUNDOWN_REF;
+typedef struct CXPLAT_RUNDOWN_REF {
+    // The completion event.
+    CXPLAT_EVENT RundownComplete;
 
-//   //     //
-//   //     // The completion event.
-//   //     //
+    // The ref counter.
+    CXPLAT_REF_COUNT RefCount;
 
-//   //     CXPLAT_EVENT RundownComplete;
+} CXPLAT_RUNDOWN_REF;
 
-//   //     //
-//   //     // The ref counter.
-//   //     //
-
-//   //     CXPLAT_REF_COUNT RefCount;
-
-// } CXPLAT_RUNDOWN_REF;
-
-// void CxPlatRundownInitialize(CXPLAT_RUNDOWN_REF *Rundown);
-#define CxPlatRundownInitialize(...)
+void CxPlatRundownInitialize(CXPLAT_RUNDOWN_REF * Rundown);
+// #define CxPlatRundownInitialize(...)
 
 // // void
 // // CxPlatRundownInitializeDisabled(
@@ -741,33 +741,33 @@ typedef uint8_t CXPLAT_RUNDOWN_REF;
 // //      CXPLAT_RUNDOWN_REF* Rundown
 // //     );
 
-// void CxPlatRundownUninitialize(CXPLAT_RUNDOWN_REF *Rundown);
-#define CxPlatRundownUninitialize(...)
+void CxPlatRundownUninitialize(CXPLAT_RUNDOWN_REF * Rundown);
+// #define CxPlatRundownUninitialize(...)
 
-// BOOLEAN
-// CxPlatRundownAcquire(CXPLAT_RUNDOWN_REF *Rundown);
-#define CxPlatRundownAcquire(...) TRUE
+BOOLEAN
+CxPlatRundownAcquire(CXPLAT_RUNDOWN_REF * Rundown);
+// #define CxPlatRundownAcquire(...) TRUE
 
-// void CxPlatRundownRelease(CXPLAT_RUNDOWN_REF *Rundown);
-#define CxPlatRundownRelease(...)
+void CxPlatRundownRelease(CXPLAT_RUNDOWN_REF * Rundown);
+// #define CxPlatRundownRelease(...)
 
-// void CxPlatRundownReleaseAndWait(CXPLAT_RUNDOWN_REF *Rundown);
-#define CxPlatRundownReleaseAndWait(...)
+void CxPlatRundownReleaseAndWait(CXPLAT_RUNDOWN_REF * Rundown);
+// #define CxPlatRundownReleaseAndWait(...)
 
 //
 // Crypto Interfaces
 //
 
 QUIC_STATUS
-CxPlatRandom(uint32_t BufferLen, void *Buffer);
+CxPlatRandom(uint32_t BufferLen, void * Buffer);
 
 //
 // Tracing stuff.
 //
 
-void CxPlatConvertToMappedV6(const QUIC_ADDR *InAddr, QUIC_ADDR *OutAddr);
+void CxPlatConvertToMappedV6(const QUIC_ADDR * InAddr, QUIC_ADDR * OutAddr);
 
-void CxPlatConvertFromMappedV6(const QUIC_ADDR *InAddr, QUIC_ADDR *OutAddr);
+void CxPlatConvertFromMappedV6(const QUIC_ADDR * InAddr, QUIC_ADDR * OutAddr);
 
 // QUIC_STATUS
 // CxPlatSetCurrentThreadProcessorAffinity(
