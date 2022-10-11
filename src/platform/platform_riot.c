@@ -37,6 +37,70 @@ Environment:
 
 // #define CXPLAT_MAX_LOG_MSG_LEN        1024 // Bytes
 
+
+BOOLEAN CxPlatEventQInitialize(CXPLAT_EVENTQ * queue)
+{
+    event_queue_init(queue);
+    return TRUE;
+}
+
+void CxPlatEventQCleanup(CXPLAT_EVENTQ * queue)
+{
+    UNREFERENCED_PARAMETER(queue);
+}
+
+BOOLEAN
+CxPlatEventQEnqueue(CXPLAT_EVENTQ * queue, CXPLAT_SQE * sqe, void * user_data)
+{
+    UNREFERENCED_PARAMETER(sqe);
+
+    printf("TODO CxPlatEventQEnqueue %p\n", queue);
+
+    // FIXME: not freed
+    CXPLAT_CQE * const e = malloc(sizeof(CXPLAT_CQE));
+    if (!e) {
+        return FALSE;
+    }
+    CxPlatZeroMemory(e, sizeof(CXPLAT_CQE));
+    e->user_data = user_data;
+
+    event_post(queue, (event_t *)e);
+    return TRUE;
+}
+
+uint32_t CxPlatEventQDequeue(CXPLAT_EVENTQ * queue,
+                             CXPLAT_CQE * events,
+                             uint32_t count,
+                             uint32_t wait_time // milliseconds
+)
+{
+    UNREFERENCED_PARAMETER(count);
+
+    if (wait_time == UINT32_MAX) {
+        printf("TODO CxPlatEventQDequeue %p\n", queue);
+        *events = *(CXPLAT_CQE *)event_wait(queue);
+    } else {
+        printf("TODO CxPlatEventQDequeue %p %" PRIu32 "\n", queue, wait_time);
+        *events = *(CXPLAT_CQE *)event_wait_timeout_ztimer(queue, ZTIMER_MSEC,
+                                                           wait_time);
+    }
+    return 1;
+}
+
+void CxPlatEventQReturn(CXPLAT_EVENTQ * queue, uint32_t count)
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(count);
+
+    puts("TODO CxPlatEventQReturn");
+}
+
+void * CxPlatCqeUserData(const CXPLAT_CQE * cqe)
+{
+    return (void *)(uintptr_t)cqe->user_data;
+}
+
+
 // CX_PLATFORM CxPlatform = { NULL };
 // int RandomFd = -1; // Used for reading random numbers.
 QUIC_TRACE_RUNDOWN_CALLBACK * QuicTraceRundownCallback;
@@ -202,6 +266,7 @@ CxPlatRefDecrement(CXPLAT_REF_COUNT * RefCount)
 
 void CxPlatRundownInitialize(CXPLAT_RUNDOWN_REF * Rundown)
 {
+    puts("CxPlatRundownInitialize");
     CxPlatRefInitialize(&((Rundown)->RefCount));
     CxPlatEventInitialize(&((Rundown)->RundownComplete), false, false);
 }
@@ -225,6 +290,7 @@ void CxPlatRundownInitialize(CXPLAT_RUNDOWN_REF * Rundown)
 
 void CxPlatRundownUninitialize(CXPLAT_RUNDOWN_REF * Rundown)
 {
+    puts("TODO? CxPlatRundownUninitialize");
     CxPlatEventUninitialize((Rundown)->RundownComplete);
 }
 
@@ -363,7 +429,7 @@ CxPlatRandom(uint32_t BufferLen, void * Buffer)
 // void
 // CxPlatConvertFromMappedV6(
 //     _In_ const QUIC_ADDR* InAddr,
-//     _Out_ QUIC_ADDR* OutAddr
+//     _Out_ Qthread_createUIC_ADDR* OutAddr
 //     )
 // {
 //     CXPLAT_DBG_ASSERT(InAddr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6);
@@ -398,102 +464,50 @@ int32_t CxPlatGetAllocFailDenominator()
 QUIC_STATUS
 CxPlatThreadCreate(CXPLAT_THREAD_CONFIG * Config, CXPLAT_THREAD * Thread)
 {
-    UNREFERENCED_PARAMETER(Config);
-    UNREFERENCED_PARAMETER(Thread);
-    return QUIC_STATUS_SUCCESS;
+    printf("CxPlatThreadCreate %s\n", Config->Name);
+
+    static uint8_t prio_hi = THREAD_PRIORITY_MAIN;
+    static uint8_t prio_lo = THREAD_PRIORITY_MIN;
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    // FIXME: not freed
+    char * const stack = malloc(THREAD_STACKSIZE_DEFAULT);
+    if (!stack) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
+    const uint8_t prio = (Config->Flags & CXPLAT_THREAD_FLAG_HIGH_PRIORITY)
+                             ? ++prio_hi
+                             : --prio_lo;
+
+    CXPLAT_FRE_ASSERT(prio_hi < prio_lo);
+    CXPLAT_FRE_ASSERT(prio_hi <= THREAD_PRIORITY_MIN);
+    CXPLAT_FRE_ASSERT(prio_lo >= THREAD_PRIORITY_MAIN);
+
+    *Thread = thread_create(stack, THREAD_STACKSIZE_DEFAULT, prio, 0,
+                            Config->Callback, Config->Context, Config->Name);
+    printf("%d\n", *Thread);
+    if (*Thread < 0) {
+        Status = errno;
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", Status,
+                       "thread_create failed");
+    }
+
+    return Status;
 }
 
-// QUIC_STATUS
-// CxPlatSetCurrentThreadProcessorAffinity(
-//     _In_ uint16_t ProcessorIndex
-//     )
-// {
-// #ifndef __ANDROID__
-//     cpu_set_t CpuSet;
-//     pthread_t Thread = pthread_self();
-//     CPU_ZERO(&CpuSet);
-//     CPU_SET(ProcessorIndex, &CpuSet);
-
-//     if (!pthread_setaffinity_np(Thread, sizeof(CpuSet), &CpuSet)) {
-//         QuicTraceEvent(
-//             LibraryError,
-//             "[ lib] ERROR, %s.",
-//             "pthread_setaffinity_np failed");
-//     }
-
-//     return QUIC_STATUS_SUCCESS;
-// #else
-//     UNREFERENCED_PARAMETER(ProcessorIndex);
-//     return QUIC_STATUS_SUCCESS;
-// #endif
-// }
-
-// #elif defined(CX_PLATFORM_DARWIN)
-
-// QUIC_STATUS
-// CxPlatThreadCreate(
-//     _In_ CXPLAT_THREAD_CONFIG* Config,
-//     _Out_ CXPLAT_THREAD* Thread
-//     )
-// {
-//     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-//     pthread_attr_t Attr;
-//     if (pthread_attr_init(&Attr)) {
-//         QuicTraceEvent(
-//             LibraryErrorStatus,
-//             "[ lib] ERROR, %u, %s.",
-//             errno,
-//             "pthread_attr_init failed");
-//         return errno;
-//     }
-
-//     // XXX: Set processor affinity
-
-//     if (Config->Flags & CXPLAT_THREAD_FLAG_HIGH_PRIORITY) {
-//         struct sched_param Params;
-//         Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
-//         if (!pthread_attr_setschedparam(&Attr, &Params)) {
-//             QuicTraceEvent(
-//                 LibraryErrorStatus,
-//                 "[ lib] ERROR, %u, %s.",
-//                 errno,
-//                 "pthread_attr_setschedparam failed");
-//         }
-//     }
-
-//     if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
-//         Status = errno;
-//         QuicTraceEvent(
-//             LibraryErrorStatus,
-//             "[ lib] ERROR, %u, %s.",
-//             Status,
-//             "pthread_create failed");
-//     }
-
-//     pthread_attr_destroy(&Attr);
-
-//     return Status;
-// }
-
-// QUIC_STATUS
-// CxPlatSetCurrentThreadProcessorAffinity(
-//     _In_ uint16_t ProcessorIndex
-//     )
-// {
-//     UNREFERENCED_PARAMETER(ProcessorIndex);
-//     return QUIC_STATUS_SUCCESS;
-// }
-
-// #endif // CX_PLATFORM
 
 void CxPlatThreadDelete(CXPLAT_THREAD * Thread)
 {
     UNREFERENCED_PARAMETER(Thread);
+    puts("TODO CxPlatThreadDelete");
 }
 
 void CxPlatThreadWait(CXPLAT_THREAD * Thread)
 {
     UNREFERENCED_PARAMETER(Thread);
+    puts("TODO CxPlatThreadWait");
 }
 
 // CXPLAT_THREAD_ID

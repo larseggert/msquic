@@ -35,54 +35,61 @@ Environment:
 extern "C++" {
 template <size_t S> struct _ENUM_FLAG_INTEGER_FOR_SIZE;
 template <> struct _ENUM_FLAG_INTEGER_FOR_SIZE<1> {
-  typedef uint8_t type;
+    typedef uint8_t type;
 };
 template <> struct _ENUM_FLAG_INTEGER_FOR_SIZE<2> {
-  typedef uint16_t type;
+    typedef uint16_t type;
 };
 template <> struct _ENUM_FLAG_INTEGER_FOR_SIZE<4> {
-  typedef uint32_t type;
+    typedef uint32_t type;
 };
 template <> struct _ENUM_FLAG_INTEGER_FOR_SIZE<8> {
-  typedef uint64_t type;
+    typedef uint64_t type;
 };
 
 // used as an approximation of std::underlying_type<T>
 template <class T> struct _ENUM_FLAG_SIZED_INTEGER {
-  typedef typename _ENUM_FLAG_INTEGER_FOR_SIZE<sizeof(T)>::type type;
+    typedef typename _ENUM_FLAG_INTEGER_FOR_SIZE<sizeof(T)>::type type;
 };
 }
 
 #define DEFINE_ENUM_FLAG_OPERATORS(ENUMTYPE)                                   \
-  extern "C++" {                                                               \
-  inline ENUMTYPE operator|(ENUMTYPE a, ENUMTYPE b) throw() {                  \
-    return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) |            \
-                    ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b));            \
-  }                                                                            \
-  inline ENUMTYPE &operator|=(ENUMTYPE &a, ENUMTYPE b) throw() {               \
-    return (ENUMTYPE &)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type &)a) |=     \
+    extern "C++" {                                                             \
+    inline ENUMTYPE operator|(ENUMTYPE a, ENUMTYPE b) throw()                  \
+    {                                                                          \
+        return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) |        \
                         ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b));        \
-  }                                                                            \
-  inline ENUMTYPE operator&(ENUMTYPE a, ENUMTYPE b) throw() {                  \
-    return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) &            \
-                    ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b));            \
-  }                                                                            \
-  inline ENUMTYPE &operator&=(ENUMTYPE &a, ENUMTYPE b) throw() {               \
-    return (ENUMTYPE &)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type &)a) &=     \
+    }                                                                          \
+    inline ENUMTYPE & operator|=(ENUMTYPE & a, ENUMTYPE b) throw()             \
+    {                                                                          \
+        return (ENUMTYPE &)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type &)a) |= \
+                            ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b));    \
+    }                                                                          \
+    inline ENUMTYPE operator&(ENUMTYPE a, ENUMTYPE b) throw()                  \
+    {                                                                          \
+        return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) &        \
                         ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b));        \
-  }                                                                            \
-  inline ENUMTYPE operator~(ENUMTYPE a) throw() {                              \
-    return ENUMTYPE(~((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a));           \
-  }                                                                            \
-  inline ENUMTYPE operator^(ENUMTYPE a, ENUMTYPE b) throw() {                  \
-    return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) ^            \
-                    ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b));            \
-  }                                                                            \
-  inline ENUMTYPE &operator^=(ENUMTYPE &a, ENUMTYPE b) throw() {               \
-    return (ENUMTYPE &)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type &)a) ^=     \
+    }                                                                          \
+    inline ENUMTYPE & operator&=(ENUMTYPE & a, ENUMTYPE b) throw()             \
+    {                                                                          \
+        return (ENUMTYPE &)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type &)a) &= \
+                            ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b));    \
+    }                                                                          \
+    inline ENUMTYPE operator~(ENUMTYPE a) throw()                              \
+    {                                                                          \
+        return ENUMTYPE(~((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a));       \
+    }                                                                          \
+    inline ENUMTYPE operator^(ENUMTYPE a, ENUMTYPE b) throw()                  \
+    {                                                                          \
+        return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) ^        \
                         ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b));        \
-  }                                                                            \
-  }
+    }                                                                          \
+    inline ENUMTYPE & operator^=(ENUMTYPE & a, ENUMTYPE b) throw()             \
+    {                                                                          \
+        return (ENUMTYPE &)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type &)a) ^= \
+                            ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b));    \
+    }                                                                          \
+    }
 #else
 #define DEFINE_ENUM_FLAG_OPERATORS(ENUMTYPE) // NOP, C allows these operators.
 #endif
@@ -103,13 +110,13 @@ template <class T> struct _ENUM_FLAG_SIZED_INTEGER {
 // large enough for this purpose.
 //
 
-#ifndef ESTRPIPE // undefined on RIOT
+#ifndef ESTRPIPE
 #define ESTRPIPE 86
-#endif // ESTRPIPE
+#endif
 
-// #ifndef ENOKEY // undefined om macOS
-// #define ENOKEY 126
-// #endif // ENOKEY
+#ifndef ENOKEY
+#define ENOKEY 126
+#endif
 
 #define ERROR_BASE 200000000             // 0xBEBC200
 #define TLS_ERROR_BASE 256 + ERROR_BASE  // 0xBEBC300
@@ -122,55 +129,55 @@ template <class T> struct _ENUM_FLAG_SIZED_INTEGER {
 #define QUIC_STATUS_INVALID_PARAMETER ((QUIC_STATUS)EINVAL) // 22
 #define QUIC_STATUS_INVALID_STATE ((QUIC_STATUS)EPERM)      // 1
 #define QUIC_STATUS_NOT_SUPPORTED                                              \
-  ((QUIC_STATUS)EOPNOTSUPP)                         // 95   (102 on macOS)
+    ((QUIC_STATUS)EOPNOTSUPP)                       // 95   (102 on macOS)
 #define QUIC_STATUS_NOT_FOUND ((QUIC_STATUS)ENOENT) // 2
 #define QUIC_STATUS_BUFFER_TOO_SMALL                                           \
-  ((QUIC_STATUS)EOVERFLOW) // 75   (84 on macOS)
+    ((QUIC_STATUS)EOVERFLOW) // 75   (84 on macOS)
 #define QUIC_STATUS_HANDSHAKE_FAILURE                                          \
-  ((QUIC_STATUS)ECONNABORTED)                        // 103  (53 on macOS)
+    ((QUIC_STATUS)ECONNABORTED)                      // 103  (53 on macOS)
 #define QUIC_STATUS_ABORTED ((QUIC_STATUS)ECANCELED) // 125  (89 on macOS)
 #define QUIC_STATUS_ADDRESS_IN_USE                                             \
-  ((QUIC_STATUS)EADDRINUSE) // 98   (48 on macOS)
+    ((QUIC_STATUS)EADDRINUSE) // 98   (48 on macOS)
 #define QUIC_STATUS_INVALID_ADDRESS                                            \
-  ((QUIC_STATUS)EAFNOSUPPORT) // 97   (47 on macOS)
+    ((QUIC_STATUS)EAFNOSUPPORT) // 97   (47 on macOS)
 #define QUIC_STATUS_CONNECTION_TIMEOUT                                         \
-  ((QUIC_STATUS)ETIMEDOUT)                               // 110  (60 on macOS)
+    ((QUIC_STATUS)ETIMEDOUT)                             // 110  (60 on macOS)
 #define QUIC_STATUS_CONNECTION_IDLE ((QUIC_STATUS)ETIME) // 62   (101 on macOS)
 #define QUIC_STATUS_INTERNAL_ERROR ((QUIC_STATUS)EIO)    // 5
 #define QUIC_STATUS_CONNECTION_REFUSED                                         \
-  ((QUIC_STATUS)ECONNREFUSED)                            // 111  (61 on macOS)
+    ((QUIC_STATUS)ECONNREFUSED)                          // 111  (61 on macOS)
 #define QUIC_STATUS_PROTOCOL_ERROR ((QUIC_STATUS)EPROTO) // 71   (100 on macOS)
 #define QUIC_STATUS_VER_NEG_ERROR                                              \
-  ((QUIC_STATUS)EPROTONOSUPPORT) // 93   (43 on macOS)
+    ((QUIC_STATUS)EPROTONOSUPPORT) // 93   (43 on macOS)
 #define QUIC_STATUS_UNREACHABLE                                                \
-  ((QUIC_STATUS)EHOSTUNREACH)                       // 113  (65 on macOS)
+    ((QUIC_STATUS)EHOSTUNREACH)                     // 113  (65 on macOS)
 #define QUIC_STATUS_TLS_ERROR ((QUIC_STATUS)ENOKEY) // 126
 #define QUIC_STATUS_USER_CANCELED                                              \
-  ((QUIC_STATUS)EOWNERDEAD) // 130  (105 on macOS)
+    ((QUIC_STATUS)EOWNERDEAD) // 130  (105 on macOS)
 #define QUIC_STATUS_ALPN_NEG_FAILURE                                           \
-  ((QUIC_STATUS)ENOPROTOOPT) // 92   (42 on macOS)
+    ((QUIC_STATUS)ENOPROTOOPT) // 92   (42 on macOS)
 #define QUIC_STATUS_STREAM_LIMIT_REACHED ((QUIC_STATUS)ESTRPIPE) // 86
 #define QUIC_STATUS_ALPN_IN_USE ((QUIC_STATUS)EPROTOTYPE) // 91   (41 on macOS)
 #define QUIC_STATUS_ADDRESS_NOT_AVAILABLE                                      \
-  ((QUIC_STATUS)EADDRNOTAVAIL) // 99   (47 on macOS)
+    ((QUIC_STATUS)EADDRNOTAVAIL) // 99   (47 on macOS)
 
 #define QUIC_STATUS_TLS_ALERT(Alert)                                           \
-  ((QUIC_STATUS)(0xff & Alert) + TLS_ERROR_BASE)
+    ((QUIC_STATUS)(0xff & Alert) + TLS_ERROR_BASE)
 
 #define QUIC_STATUS_CLOSE_NOTIFY                                               \
-  QUIC_STATUS_TLS_ALERT(0) // 0xBEBC300 - Close notify
+    QUIC_STATUS_TLS_ALERT(0) // 0xBEBC300 - Close notify
 #define QUIC_STATUS_BAD_CERTIFICATE                                            \
-  QUIC_STATUS_TLS_ALERT(42) // 0xBEBC32A - Bad Certificate
+    QUIC_STATUS_TLS_ALERT(42) // 0xBEBC32A - Bad Certificate
 #define QUIC_STATUS_UNSUPPORTED_CERTIFICATE                                    \
-  QUIC_STATUS_TLS_ALERT(43) // 0xBEBC32B - Unsupported Certficiate
+    QUIC_STATUS_TLS_ALERT(43) // 0xBEBC32B - Unsupported Certficiate
 #define QUIC_STATUS_REVOKED_CERTIFICATE                                        \
-  QUIC_STATUS_TLS_ALERT(44) // 0xBEBC32C - Revoked Certificate
+    QUIC_STATUS_TLS_ALERT(44) // 0xBEBC32C - Revoked Certificate
 #define QUIC_STATUS_EXPIRED_CERTIFICATE                                        \
-  QUIC_STATUS_TLS_ALERT(45) // 0xBEBC32D - Expired Certificate
+    QUIC_STATUS_TLS_ALERT(45) // 0xBEBC32D - Expired Certificate
 #define QUIC_STATUS_UNKNOWN_CERTIFICATE                                        \
-  QUIC_STATUS_TLS_ALERT(46) // 0xBEBC32E - Unknown Certificate
+    QUIC_STATUS_TLS_ALERT(46) // 0xBEBC32E - Unknown Certificate
 #define QUIC_STATUS_REQUIRED_CERTIFICATE                                       \
-  QUIC_STATUS_TLS_ALERT(116) // 0xBEBC374 - Required Certificate
+    QUIC_STATUS_TLS_ALERT(116) // 0xBEBC374 - Required Certificate
 
 #define QUIC_STATUS_CERT_ERROR(Val) ((QUIC_STATUS)Val + CERT_ERROR_BASE)
 
@@ -189,9 +196,9 @@ typedef sa_family_t QUIC_ADDRESS_FAMILY;
 #define QUIC_ADDRESS_FAMILY_INET6 AF_INET6
 
 typedef union QUIC_ADDR {
-  struct sockaddr Ip;
-  struct sockaddr_in Ipv4;
-  struct sockaddr_in6 Ipv6;
+    struct sockaddr Ip;
+    struct sockaddr_in Ipv4;
+    struct sockaddr_in6 Ipv6;
 } QUIC_ADDR;
 
 // #define INADDR_LOOPBACK 0x7f000001 // 127.0.0.1
@@ -245,10 +252,12 @@ typedef union QUIC_ADDR {
 // Helpers for Windows string functions.
 //
 
-int _strnicmp(const char *s1, const char *s2, unsigned int sz);
+int _strnicmp(const char * s1, const char * s2, unsigned int sz);
 
-char *hex2str(const uint8_t *const src, const size_t len_src, char *const dst,
-              const size_t len_dst);
+char * hex2str(const uint8_t * const src,
+               const size_t len_src,
+               char * const dst,
+               const size_t len_dst);
 
 // #define sprintf_s(dst, dst_len, format, ...) sprintf(dst, format,
 // __VA_ARGS__) #define _vsnprintf_s(dst, dst_len, flag, format, ...)
@@ -258,65 +267,73 @@ char *hex2str(const uint8_t *const src, const size_t len_src, char *const dst,
 // IP Address Abstraction Helpers
 //
 
-inline BOOLEAN QuicAddrFamilyIsValid(QUIC_ADDRESS_FAMILY Family) {
-  return Family == QUIC_ADDRESS_FAMILY_UNSPEC ||
-         Family == QUIC_ADDRESS_FAMILY_INET ||
-         Family == QUIC_ADDRESS_FAMILY_INET6;
+inline BOOLEAN QuicAddrFamilyIsValid(QUIC_ADDRESS_FAMILY Family)
+{
+    return Family == QUIC_ADDRESS_FAMILY_UNSPEC ||
+           Family == QUIC_ADDRESS_FAMILY_INET ||
+           Family == QUIC_ADDRESS_FAMILY_INET6;
 }
 
-inline BOOLEAN QuicAddrIsValid(const QUIC_ADDR *const Addr) {
-  return QuicAddrFamilyIsValid(Addr->Ip.sa_family);
+inline BOOLEAN QuicAddrIsValid(const QUIC_ADDR * const Addr)
+{
+    return QuicAddrFamilyIsValid(Addr->Ip.sa_family);
 }
 
-inline BOOLEAN QuicAddrCompareIp(const QUIC_ADDR *const Addr1,
-                                 const QUIC_ADDR *const Addr2) {
-  if (QUIC_ADDRESS_FAMILY_INET == Addr1->Ip.sa_family) {
-    return memcmp(&Addr1->Ipv4.sin_addr, &Addr2->Ipv4.sin_addr,
-                  sizeof(IN_ADDR)) == 0;
-  } else {
-    return memcmp(&Addr1->Ipv6.sin6_addr, &Addr2->Ipv6.sin6_addr,
-                  sizeof(IN6_ADDR)) == 0;
-  }
+inline BOOLEAN QuicAddrCompareIp(const QUIC_ADDR * const Addr1,
+                                 const QUIC_ADDR * const Addr2)
+{
+    if (QUIC_ADDRESS_FAMILY_INET == Addr1->Ip.sa_family) {
+        return memcmp(&Addr1->Ipv4.sin_addr, &Addr2->Ipv4.sin_addr,
+                      sizeof(IN_ADDR)) == 0;
+    } else {
+        return memcmp(&Addr1->Ipv6.sin6_addr, &Addr2->Ipv6.sin6_addr,
+                      sizeof(IN6_ADDR)) == 0;
+    }
 }
 
-inline BOOLEAN QuicAddrCompare(const QUIC_ADDR *const Addr1,
-                               const QUIC_ADDR *const Addr2) {
-  if (Addr1->Ip.sa_family != Addr2->Ip.sa_family ||
-      Addr1->Ipv4.sin_port != Addr2->Ipv4.sin_port) {
-    return FALSE;
-  }
+inline BOOLEAN QuicAddrCompare(const QUIC_ADDR * const Addr1,
+                               const QUIC_ADDR * const Addr2)
+{
+    if (Addr1->Ip.sa_family != Addr2->Ip.sa_family ||
+        Addr1->Ipv4.sin_port != Addr2->Ipv4.sin_port) {
+        return FALSE;
+    }
 
-  if (QUIC_ADDRESS_FAMILY_INET == Addr1->Ip.sa_family) {
-    return memcmp(&Addr1->Ipv4.sin_addr, &Addr2->Ipv4.sin_addr,
-                  sizeof(IN_ADDR)) == 0;
-  } else {
-    return memcmp(&Addr1->Ipv6.sin6_addr, &Addr2->Ipv6.sin6_addr,
-                  sizeof(IN6_ADDR)) == 0;
-  }
+    if (QUIC_ADDRESS_FAMILY_INET == Addr1->Ip.sa_family) {
+        return memcmp(&Addr1->Ipv4.sin_addr, &Addr2->Ipv4.sin_addr,
+                      sizeof(IN_ADDR)) == 0;
+    } else {
+        return memcmp(&Addr1->Ipv6.sin6_addr, &Addr2->Ipv6.sin6_addr,
+                      sizeof(IN6_ADDR)) == 0;
+    }
 }
 
-inline QUIC_ADDRESS_FAMILY QuicAddrGetFamily(const QUIC_ADDR *const Addr) {
-  return Addr->Ip.sa_family;
+inline QUIC_ADDRESS_FAMILY QuicAddrGetFamily(const QUIC_ADDR * const Addr)
+{
+    return Addr->Ip.sa_family;
 }
 
-inline void QuicAddrSetFamily(QUIC_ADDR *Addr, QUIC_ADDRESS_FAMILY Family) {
-  Addr->Ip.sa_family = Family;
+inline void QuicAddrSetFamily(QUIC_ADDR * Addr, QUIC_ADDRESS_FAMILY Family)
+{
+    Addr->Ip.sa_family = Family;
 }
 
-static inline uint16_t QuicAddrGetPort(const QUIC_ADDR *const Addr) {
-  if (QUIC_ADDRESS_FAMILY_INET == Addr->Ip.sa_family) {
-    return ntohs(Addr->Ipv4.sin_port);
-  } else {
-    return ntohs(Addr->Ipv6.sin6_port);
-  }
+static inline uint16_t QuicAddrGetPort(const QUIC_ADDR * const Addr)
+{
+    if (QUIC_ADDRESS_FAMILY_INET == Addr->Ip.sa_family) {
+        return ntohs(Addr->Ipv4.sin_port);
+    } else {
+        return ntohs(Addr->Ipv6.sin6_port);
+    }
 }
 
-static inline void QuicAddrSetPort(QUIC_ADDR *Addr, uint16_t Port) {
-  if (QUIC_ADDRESS_FAMILY_INET == Addr->Ip.sa_family) {
-    Addr->Ipv4.sin_port = htons(Port);
-  } else {
-    Addr->Ipv6.sin6_port = htons(Port);
-  }
+static inline void QuicAddrSetPort(QUIC_ADDR * Addr, uint16_t Port)
+{
+    if (QUIC_ADDRESS_FAMILY_INET == Addr->Ip.sa_family) {
+        Addr->Ipv4.sin_port = htons(Port);
+    } else {
+        Addr->Ipv6.sin6_port = htons(Port);
+    }
 }
 
 // //
@@ -349,35 +366,38 @@ static inline void QuicAddrSetPort(QUIC_ADDR *Addr, uint16_t Port) {
 // }
 
 inline uint32_t QUIC_NO_SANITIZE("unsigned-integer-overflow")
-    QuicAddrHash(const QUIC_ADDR *Addr) {
-  uint32_t Hash = 5387; // A random prime number.
+    QuicAddrHash(const QUIC_ADDR * Addr)
+{
+    uint32_t Hash = 5387; // A random prime number.
 #define UPDATE_HASH(byte) Hash = ((Hash << 5) - Hash) + (byte)
-  if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
-    UPDATE_HASH(Addr->Ipv4.sin_port & 0xFF);
-    UPDATE_HASH(Addr->Ipv4.sin_port >> 8);
-    for (uint8_t i = 0; i < sizeof(Addr->Ipv4.sin_addr); ++i) {
-      UPDATE_HASH(((uint8_t *)&Addr->Ipv4.sin_addr)[i]);
+    if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
+        UPDATE_HASH(Addr->Ipv4.sin_port & 0xFF);
+        UPDATE_HASH(Addr->Ipv4.sin_port >> 8);
+        for (uint8_t i = 0; i < sizeof(Addr->Ipv4.sin_addr); ++i) {
+            UPDATE_HASH(((uint8_t *)&Addr->Ipv4.sin_addr)[i]);
+        }
+    } else {
+        UPDATE_HASH(Addr->Ipv6.sin6_port & 0xFF);
+        UPDATE_HASH(Addr->Ipv6.sin6_port >> 8);
+        for (uint8_t i = 0; i < sizeof(Addr->Ipv6.sin6_addr); ++i) {
+            UPDATE_HASH(((uint8_t *)&Addr->Ipv6.sin6_addr)[i]);
+        }
     }
-  } else {
-    UPDATE_HASH(Addr->Ipv6.sin6_port & 0xFF);
-    UPDATE_HASH(Addr->Ipv6.sin6_port >> 8);
-    for (uint8_t i = 0; i < sizeof(Addr->Ipv6.sin6_addr); ++i) {
-      UPDATE_HASH(((uint8_t *)&Addr->Ipv6.sin6_addr)[i]);
-    }
-  }
-  return Hash;
+    return Hash;
 }
 
-inline BOOLEAN QuicAddrIsWildCard(const QUIC_ADDR *const Addr) {
-  if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_UNSPEC) {
-    return TRUE;
-  } else if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
-    const IN_ADDR ZeroAddr = {0};
-    return memcmp(&Addr->Ipv4.sin_addr.s_addr, &ZeroAddr, sizeof(IN_ADDR)) == 0;
-  } else {
-    const IN6_ADDR ZeroAddr = {0};
-    return memcmp(&Addr->Ipv6.sin6_addr, &ZeroAddr, sizeof(IN6_ADDR)) == 0;
-  }
+inline BOOLEAN QuicAddrIsWildCard(const QUIC_ADDR * const Addr)
+{
+    if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_UNSPEC) {
+        return TRUE;
+    } else if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET) {
+        const IN_ADDR ZeroAddr = {0};
+        return memcmp(&Addr->Ipv4.sin_addr.s_addr, &ZeroAddr,
+                      sizeof(IN_ADDR)) == 0;
+    } else {
+        const IN6_ADDR ZeroAddr = {0};
+        return memcmp(&Addr->Ipv6.sin6_addr, &ZeroAddr, sizeof(IN6_ADDR)) == 0;
+    }
 }
 
 // inline
@@ -470,7 +490,7 @@ inline BOOLEAN QuicAddrIsWildCard(const QUIC_ADDR *const Addr) {
 // Represents an IP address and (optionally) port number as a string.
 //
 typedef struct QUIC_ADDR_STR {
-  char Address[64];
+    char Address[64];
 } QUIC_ADDR_STR;
 
 // inline

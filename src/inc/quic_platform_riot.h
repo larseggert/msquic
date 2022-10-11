@@ -32,6 +32,7 @@ Environment:
 #include <event.h>
 #include <mutex.h>
 #include <stdint.h>
+#include <thread.h>
 #include <ztimer.h>
 
 #include "msquic_riot.h"
@@ -596,64 +597,86 @@ inline BOOLEAN CxPlatInternalEventWaitWithTimeout(CXPLAT_EVENT * Event,
 // Event Queue Interfaces
 //
 
-// typedef struct io_uring CXPLAT_EVENTQ;
-// typedef struct io_uring_cqe* CXPLAT_CQE;
-
-typedef event_queue_t CXPLAT_EVENTQ;
 #define CXPLAT_SQE int
-typedef event_t CXPLAT_CQE;
+typedef event_queue_t CXPLAT_EVENTQ;
+typedef struct {
+    event_t super;
+    void * user_data;
+} CXPLAT_CQE;
 
-static inline BOOLEAN CxPlatEventQInitialize(CXPLAT_EVENTQ * queue)
-{
-    event_queue_init(queue);
-    return TRUE;
-}
+extern BOOLEAN CxPlatEventQInitialize(CXPLAT_EVENTQ * queue);
 
-static inline void CxPlatEventQCleanup(CXPLAT_EVENTQ * queue)
-{
-    UNREFERENCED_PARAMETER(queue);
-}
+extern void CxPlatEventQCleanup(CXPLAT_EVENTQ * queue);
 
-inline BOOLEAN
-CxPlatEventQEnqueue(CXPLAT_EVENTQ * queue, CXPLAT_SQE *, void * user_data)
-{
-    event_post(queue, user_data);
-    puts("TODO CxPlatEventQEnqueue");
-    return TRUE;
-}
+extern BOOLEAN
+CxPlatEventQEnqueue(CXPLAT_EVENTQ * queue, CXPLAT_SQE * sqe, void * user_data);
 
-static inline uint32_t CxPlatEventQDequeue(CXPLAT_EVENTQ * queue,
-                                           CXPLAT_CQE * events,
-                                           uint32_t count,
-                                           uint32_t wait_time // milliseconds
-)
-{
-    UNREFERENCED_PARAMETER(count);
+extern uint32_t CxPlatEventQDequeue(CXPLAT_EVENTQ * queue,
+                                    CXPLAT_CQE * events,
+                                    uint32_t count,
+                                    uint32_t wait_time // milliseconds
+);
 
-    puts("TODO CxPlatEventQDequeue");
-    if (wait_time == UINT32_MAX) {
-        *events = *event_wait(queue);
-    } else {
-        *events = *event_wait_timeout_ztimer(queue, ZTIMER_MSEC, wait_time);
-    }
-    return 0;
-}
+extern void CxPlatEventQReturn(CXPLAT_EVENTQ * queue, uint32_t count);
 
-inline void CxPlatEventQReturn(CXPLAT_EVENTQ * queue, uint32_t count)
-{
-    UNREFERENCED_PARAMETER(queue);
-    UNREFERENCED_PARAMETER(count);
+extern void * CxPlatCqeUserData(const CXPLAT_CQE * cqe);
 
-    puts("TODO CxPlatEventQReturn");
-}
 
-inline void * CxPlatCqeUserData(const CXPLAT_CQE * cqe)
-{
-    UNREFERENCED_PARAMETER(cqe);
+// static inline BOOLEAN CxPlatEventQInitialize(CXPLAT_EVENTQ * queue)
+// {
+//     event_queue_init(queue);
+//     return TRUE;
+// }
 
-    puts("TODO CxPlatCqeUserData");
-    return 0;
-}
+// static inline void CxPlatEventQCleanup(CXPLAT_EVENTQ * queue)
+// {
+//     UNREFERENCED_PARAMETER(queue);
+// }
+
+// inline BOOLEAN
+// CxPlatEventQEnqueue(CXPLAT_EVENTQ * queue, CXPLAT_SQE * sqe, void *
+// user_data)
+// {
+//     UNREFERENCED_PARAMETER(sqe);
+
+//     event_post(queue, user_data);
+//     puts("TODO CxPlatEventQEnqueue");
+//     return TRUE;
+// }
+
+// static inline uint32_t CxPlatEventQDequeue(CXPLAT_EVENTQ * queue,
+//                                            CXPLAT_CQE * events,
+//                                            uint32_t count,
+//                                            uint32_t wait_time // milliseconds
+// )
+// {
+//     UNREFERENCED_PARAMETER(count);
+
+//     printf("TODO CxPlatEventQDequeue %" PRIu32 "\n", wait_time);
+//     if (wait_time == UINT32_MAX) {
+//         *events = *event_wait(queue);
+//     } else {
+//         *events = *event_wait_timeout_ztimer(queue, ZTIMER_MSEC, wait_time);
+//     }
+//     puts("CxPlatEventQDequeue done");
+//     return 1;
+// }
+
+// inline void CxPlatEventQReturn(CXPLAT_EVENTQ * queue, uint32_t count)
+// {
+//     UNREFERENCED_PARAMETER(queue);
+//     UNREFERENCED_PARAMETER(count);
+
+//     puts("TODO CxPlatEventQReturn");
+// }
+
+// inline void * CxPlatCqeUserData(const CXPLAT_CQE * cqe)
+// {
+//     UNREFERENCED_PARAMETER(cqe);
+
+//     puts("TODO CxPlatCqeUserData");
+//     return 0;
+// }
 
 //
 // Thread Interfaces.
@@ -663,26 +686,20 @@ inline void * CxPlatCqeUserData(const CXPLAT_CQE * cqe)
 // QUIC thread object.
 //
 
-typedef pthread_t CXPLAT_THREAD;
-// typedef thread_t CXPLAT_THREAD;
-// typedef uint8_t CXPLAT_THREAD;
-
-// typedef struct CXPLAT_THREAD {
-//   thread_t Thread;
-// } CXPLAT_THREAD;
+typedef kernel_pid_t CXPLAT_THREAD;
 
 #define CXPLAT_THREAD_CALLBACK(FuncName, CtxVarName)                           \
     void * FuncName(void * CtxVarName)
 
 #define CXPLAT_THREAD_RETURN(Status) return NULL;
 
-typedef void * (*LPTHREAD_START_ROUTINE)(void *);
+// typedef void * (*LPTHREAD_START_ROUTINE)(void *);
 
 typedef struct CXPLAT_THREAD_CONFIG {
     uint16_t Flags;
     uint16_t IdealProcessor;
-    _Field_z_ const char * Name;
-    LPTHREAD_START_ROUTINE Callback;
+    const char * Name;
+    thread_task_func_t Callback;
     void * Context;
 } CXPLAT_THREAD_CONFIG;
 
@@ -693,11 +710,11 @@ void CxPlatThreadDelete(CXPLAT_THREAD * Thread);
 
 void CxPlatThreadWait(CXPLAT_THREAD * Thread);
 
-typedef uint8_t CXPLAT_THREAD_ID;
+typedef kernel_pid_t CXPLAT_THREAD_ID;
 
 static inline CXPLAT_THREAD_ID CxPlatCurThreadID(void)
 {
-    return 0;
+    return thread_getpid();
 }
 
 //

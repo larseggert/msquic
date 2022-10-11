@@ -9,11 +9,12 @@ Abstract:
 
 --*/
 
+#include "platform_internal.h"
+
 #include <wolfssl/wolfcrypt/hmac.h>
 #include <wolfssl/wolfcrypt/sha512.h>
 #include <wolfssl/wolfcrypt/wc_port.h>
 
-#include "platform_internal.h"
 
 typedef struct CXPLAT_HASH {
     struct Hmac Mac;

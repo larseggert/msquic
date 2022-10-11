@@ -226,3 +226,11 @@ CxPlatSendDataIsFull(CXPLAT_SEND_DATA * SendData)
     puts("TODO CxPlatSendDataIsFull");
     return FALSE;
 }
+
+void
+CxPlatDataPathProcessCqe(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    puts("TODO CxPlatDataPathProcessCqe");
+}
