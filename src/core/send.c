@@ -1152,7 +1152,7 @@ QuicSendFlush(
 
     QuicTraceEvent(
         ConnFlushSend,
-        "[conn][%p] Flushing Send. Allowance=%u bytes",
+        "[conn][%p] Flushing Send. Allowance=%"PRIu32" bytes",
         Connection,
         Builder.SendAllowance);
 

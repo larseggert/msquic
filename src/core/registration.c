@@ -65,7 +65,7 @@ MsQuicRegistrationOpen(
     if (Registration == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "registration",
             sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -97,7 +97,7 @@ MsQuicRegistrationOpen(
 
     QuicTraceEvent(
         RegistrationCreatedV2,
-        "[ reg][%p] Created, AppName=%s, ExecProfile=%u",
+        "[ reg][%p] Created, AppName=%s, ExecProfile=%"PRIu16,
         Registration,
         Registration->AppName,
         Registration->ExecProfile);
@@ -136,7 +136,7 @@ Error:
 
     QuicTraceEvent(
         ApiExitStatus,
-        "[ api] Exit %u",
+        "[ api] Exit %"PRIu32,
         Status);
 
     return Status;

@@ -48,7 +48,7 @@ QuicBindingInitialize(
     if (Binding == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "QUIC_BINDING",
             sizeof(QUIC_BINDING));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -89,7 +89,7 @@ QuicBindingInitialize(
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 BindingErrorStatus,
-                "[bind][%p] ERROR, %u, %s.",
+                "[bind][%p] ERROR, %"PRIu32", %s.",
                 Binding,
                 Status,
                 "Set current compartment Id");
@@ -146,7 +146,7 @@ QuicBindingInitialize(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             BindingErrorStatus,
-            "[bind][%p] ERROR, %u, %s.",
+            "[bind][%p] ERROR, %"PRIu32", %s.",
             Binding,
             Status,
             "Create datapath binding");
@@ -531,7 +531,7 @@ QuicBindingAcceptConnection(
         if (NegotiatedAlpn == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%zu bytes)",
                 "NegotiatedAlpn",
                 NegotiatedAlpnLength);
             QuicConnTransportError(
@@ -775,7 +775,7 @@ QuicBindingQueueStatelessOperation(
     if (Oper == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "stateless operation",
             sizeof(QUIC_OPERATION));
         QuicPacketLogDrop(
@@ -809,7 +809,7 @@ QuicBindingProcessStatelessOperation(
 
     QuicTraceEvent(
         BindingExecOper,
-        "[bind][%p] Execute: %u",
+        "[bind][%p] Execute: %"PRIu32,
         Binding,
         OperationType);
 
@@ -822,7 +822,7 @@ QuicBindingProcessStatelessOperation(
     if (SendData == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "stateless send data",
             0);
         goto Exit;
@@ -856,7 +856,7 @@ QuicBindingProcessStatelessOperation(
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%"PRIu16" bytes)",
                 "vn datagram",
                 PacketLength);
             goto Exit;
@@ -943,7 +943,7 @@ QuicBindingProcessStatelessOperation(
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%zu bytes)",
                 "reset datagram",
                 PacketLength);
             goto Exit;
@@ -984,7 +984,7 @@ QuicBindingProcessStatelessOperation(
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%zu bytes)",
                 "retry datagram",
                 PacketLength);
             goto Exit;
@@ -1050,12 +1050,12 @@ QuicBindingProcessStatelessOperation(
 
         QuicTraceLogVerbose(
             PacketTxRetry,
-            "[S][TX][-] LH Ver:0x%"PRIx32" DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %hu bytes)",
+            "[S][TX][-] LH Ver:0x%"PRIx32" DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %zu bytes)",
             RecvPacket->LH->Version,
             QuicCidBufToStr(RecvPacket->SourceCid, RecvPacket->SourceCidLen).Buffer,
             QuicCidBufToStr(NewDestCid, MsQuicLib.CidTotalLength).Buffer,
             QuicCidBufToStr(RecvPacket->DestCid, RecvPacket->DestCidLen).Buffer,
-            (uint16_t)sizeof(Token));
+            sizeof(Token));
 
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_SEND_STATELESS_RETRY);
 
@@ -1834,7 +1834,7 @@ QuicBindingSend(
             if (QUIC_FAILED(Status)) {
                 QuicTraceLogWarning(
                     BindingSendFailed,
-                    "[bind][%p] Send failed, 0x%x",
+                    "[bind][%p] Send failed, 0x%"PRIx32,
                     Binding,
                     Status);
             }
@@ -1850,7 +1850,7 @@ QuicBindingSend(
         if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(
                 BindingSendFailed,
-                "[bind][%p] Send failed, 0x%x",
+                "[bind][%p] Send failed, 0x%"PRIx32,
                 Binding,
                 Status);
         }

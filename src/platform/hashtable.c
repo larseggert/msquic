@@ -491,7 +491,7 @@ Return Value:
         if (Table == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%"PRIu32" bytes)",
+                "Allocation of '%s' failed. (%zu bytes)",
                 "CXPLAT_HASHTABLE",
                 sizeof(CXPLAT_HASHTABLE));
             return FALSE;

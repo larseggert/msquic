@@ -154,7 +154,7 @@ QuicStreamRecvQueueFlush(
             } else {
                 QuicTraceEvent(
                     AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Allocation of '%s' failed. (%zu bytes)",
                     "Flush Stream Recv operation",
                     0);
             }
@@ -858,7 +858,7 @@ QuicStreamRecvFlush(
 
         QuicTraceEvent(
             StreamAppReceive,
-            "[strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]",
+            "[strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE [%"PRIu64" bytes, %"PRIu32" buffers, 0x%x flags]",
             Stream,
             Event.RECEIVE.TotalBufferLength,
             Event.RECEIVE.BufferCount,
@@ -974,7 +974,7 @@ QuicStreamReceiveComplete(
 
     QuicTraceEvent(
         StreamAppReceiveComplete,
-        "[strm][%p] Receive complete [%llu bytes]",
+        "[strm][%p] Receive complete [%"PRIu64" bytes]",
         Stream,
         BufferLength);
 

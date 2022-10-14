@@ -378,7 +378,7 @@ QuicLossDetectionUpdateTimer(
     } else {
         QuicTraceEvent(
             ConnLossDetectionTimerSet,
-            "[conn][%p] Setting loss detection %hhu timer for %u us. (ProbeCount=%hu)",
+            "[conn][%p] Setting loss detection %hhu timer for %"PRIu32" us. (ProbeCount=%hu)",
             Connection,
             TimeoutType,
             Delay,
@@ -412,7 +412,7 @@ QuicLossDetectionOnPacketSent(
         //
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "Sent packet metadata",
             SIZEOF_QUIC_SENT_PACKET_METADATA(TempSentPacket->FrameCount));
         QuicLossDetectionRetransmitFrames(LossDetection, TempSentPacket, FALSE);

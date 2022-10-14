@@ -399,7 +399,7 @@ QuicStreamTraceRundown(
 {
     QuicTraceEvent(
         StreamRundown,
-        "[strm][%p] Rundown, Conn=%p ID=%llu IsLocal=%hhu",
+        "[strm][%p] Rundown, Conn=%p ID=%llu IsLocal=%"PRIu64,
         Stream,
         Stream->Connection,
         Stream->ID,
@@ -471,7 +471,7 @@ QuicStreamIndicateStartComplete(
     QuicTraceLogStreamVerbose(
         IndicateStartComplete,
         Stream,
-        "Indicating QUIC_STREAM_EVENT_START_COMPLETE [Status=0x%x ID=%llu Accepted=%hhu]",
+        "Indicating QUIC_STREAM_EVENT_START_COMPLETE [Status=0x%"PRIx32" ID=%llu Accepted=%hhu]",
         Status,
         Stream->ID,
         Event.START_COMPLETE.PeerAccepted);
@@ -505,7 +505,7 @@ QuicStreamIndicateShutdownComplete(
         QuicTraceLogStreamVerbose(
             IndicateStreamShutdownComplete,
             Stream,
-            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx, ConnectionCloseStatus=0x%x]",
+            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx, ConnectionCloseStatus=0x%"PRIx32"]",
             Event.SHUTDOWN_COMPLETE.ConnectionShutdown,
             Event.SHUTDOWN_COMPLETE.ConnectionShutdownByApp,
             Event.SHUTDOWN_COMPLETE.ConnectionClosedRemotely,

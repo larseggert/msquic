@@ -81,7 +81,7 @@ Error:
 
     QuicTraceEvent(
         ApiExitStatus,
-        "[ api] Exit %u",
+        "[ api] Exit %"PRIu32,
         Status);
 
     return Status;
@@ -351,7 +351,7 @@ MsQuicConnectionStart(
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%zu bytes)",
                 "Server name",
                 ServerNameLength + 1);
             goto Error;
@@ -368,7 +368,7 @@ MsQuicConnectionStart(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "CONN_START operation",
             0);
         goto Error;
@@ -396,7 +396,7 @@ Error:
 
     QuicTraceEvent(
         ApiExitStatus,
-        "[ api] Exit %u",
+        "[ api] Exit %"PRIu32,
         Status);
 
     return Status;
@@ -467,7 +467,7 @@ MsQuicConnectionSetConfiguration(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "CONN_SET_CONFIGURATION operation",
             0);
         goto Error;
@@ -487,7 +487,7 @@ Error:
 
     QuicTraceEvent(
         ApiExitStatus,
-        "[ api] Exit %u",
+        "[ api] Exit %"PRIu32,
         Status);
 
     return Status;
@@ -561,7 +561,7 @@ MsQuicConnectionSendResumptionTicket(
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%zu bytes)",
                 "Resumption data copy",
                 DataLength);
             goto Error;
@@ -574,7 +574,7 @@ MsQuicConnectionSendResumptionTicket(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "CONN_SEND_RESUMPTION_TICKET operation",
             0);
         goto Error;
@@ -599,7 +599,7 @@ Error:
 
     QuicTraceEvent(
         ApiExitStatus,
-        "[ api] Exit %u",
+        "[ api] Exit %"PRIu32,
         Status);
 
     return Status;
@@ -675,7 +675,7 @@ Error:
 
     QuicTraceEvent(
         ApiExitStatus,
-        "[ api] Exit %u",
+        "[ api] Exit %"PRIu32,
         Status);
 
     return Status;
@@ -841,7 +841,7 @@ MsQuicStreamStart(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "STRM_START operation",
             0);
         goto Exit;
@@ -867,7 +867,7 @@ Exit:
 
     QuicTraceEvent(
         ApiExitStatus,
-        "[ api] Exit %u",
+        "[ api] Exit %"PRIu32,
         Status);
 
     return Status;
@@ -961,7 +961,7 @@ MsQuicStreamShutdown(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "STRM_SHUTDOWN operation",
             0);
         goto Error;
@@ -988,7 +988,7 @@ Error:
 
     QuicTraceEvent(
         ApiExitStatus,
-        "[ api] Exit %u",
+        "[ api] Exit %"PRIu32,
         Status);
 
     return Status;
@@ -1065,7 +1065,7 @@ MsQuicStreamSend(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "Stream Send request",
             0);
         goto Exit;
@@ -1073,7 +1073,7 @@ MsQuicStreamSend(
 
     QuicTraceEvent(
         StreamAppSend,
-        "[strm][%p] App queuing send [%llu bytes, %u buffers, 0x%x flags]",
+        "[strm][%p] App queuing send [%"PRIu64" bytes, %"PRIu32" buffers, 0x%x flags]",
         Stream,
         TotalLength,
         BufferCount,
@@ -1114,7 +1114,7 @@ MsQuicStreamSend(
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%zu bytes)",
                 "STRM_SEND operation",
                 0);
             goto Exit;
@@ -1141,7 +1141,7 @@ Exit:
 
     QuicTraceEvent(
         ApiExitStatus,
-        "[ api] Exit %u",
+        "[ api] Exit %"PRIu32,
         Status);
 
     return Status;
@@ -1189,7 +1189,7 @@ MsQuicStreamReceiveSetEnabled(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "STRM_RECV_SET_ENABLED, operation",
             0);
         goto Error;
@@ -1215,7 +1215,7 @@ Error:
 
     QuicTraceEvent(
         ApiExitStatus,
-        "[ api] Exit %u",
+        "[ api] Exit %"PRIu32,
         Status);
 
     return Status;
@@ -1235,8 +1235,8 @@ MsQuicStreamReceiveComplete(
 
     QuicTraceEvent(
         ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_STREAM_RECEIVE_COMPLETE,
+        "[ api] Enter %"PRIu32" (%p).",
+        (uint32_t)QUIC_TRACE_API_STREAM_RECEIVE_COMPLETE,
         Handle);
 
     if (!IS_STREAM_HANDLE(Handle)) {
@@ -1259,14 +1259,14 @@ MsQuicStreamReceiveComplete(
     if (!Stream->Flags.Started || !Stream->Flags.ReceiveCallPending) {
         QuicTraceEvent(
             ApiError,
-            "[ api] Error %u",
+            "[ api] Error %"PRIu32,
             (uint32_t)QUIC_STATUS_INVALID_STATE);
         goto Exit;
     }
 
     QuicTraceEvent(
         StreamAppReceiveCompleteCall,
-        "[strm][%p] Receive complete call [%llu bytes]",
+        "[strm][%p] Receive complete call [%"PRIu64" bytes]",
         Stream,
         BufferLength);
 
@@ -1291,7 +1291,7 @@ MsQuicStreamReceiveComplete(
     if (Oper == NULL) {
         QuicTraceEvent(
             ApiError,
-            "[ api] Error %u",
+            "[ api] Error %"PRIu32,
             (uint32_t)QUIC_STATUS_NOT_SUPPORTED);
         goto Exit; // Duplicate calls to receive complete
     }
@@ -1431,7 +1431,7 @@ Error:
 
     QuicTraceEvent(
         ApiExitStatus,
-        "[ api] Exit %u",
+        "[ api] Exit %"PRIu32,
         Status);
 
     return Status;
@@ -1551,7 +1551,7 @@ Error:
 
     QuicTraceEvent(
         ApiExitStatus,
-        "[ api] Exit %u",
+        "[ api] Exit %"PRIu32,
         Status);
 
     return Status;
@@ -1627,7 +1627,7 @@ Error:
 
     QuicTraceEvent(
         ApiExitStatus,
-        "[ api] Exit %u",
+        "[ api] Exit %"PRIu32,
         Status);
 
     return Status;

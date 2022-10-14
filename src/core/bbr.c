@@ -288,7 +288,7 @@ QuicConnLogBbr(
 
     QuicTraceEvent(
             ConnBbr,
-            "[conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u",
+            "[conn][%p] BBR: State=%"PRIu32" RState=%"PRIu32" CongestionWindow=%"PRIu32" BytesInFlight=%"PRIu32" BytesInFlightMax=%"PRIu32" MinRttEst=%"PRIu32" EstBw=%"PRIu64" AppLimited=%u",
             Connection,
             Bbr->BbrState,
             Bbr->RecoveryState,
@@ -321,7 +321,7 @@ BbrCongestionControlLogOutFlowStatus(
 
     QuicTraceEvent(
             ConnOutFlowStats,
-            "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u",
+            "[conn][%p] OUT: BytesSent=%"PRIu64" InFlight=%"PRIu32" InFlightMax=%"PRIu32" CWnd=%"PRIu32" SSThresh=%u ConnFC=%"PRIu64" ISB=%"PRIu64" PostedBytes=%"PRIu64" SRtt=%"PRIu32"",
             Connection,
             Connection->Stats.Send.TotalBytes,
             Bbr->BytesInFlight,

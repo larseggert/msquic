@@ -136,7 +136,7 @@ QuicCryptoInitialize(
     if (Crypto->TlsState.Buffer == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "crypto send buffer",
             SendBufferLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -194,7 +194,7 @@ QuicCryptoInitialize(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             ConnErrorStatus,
-            "[conn][%p] ERROR, %u, %s.",
+            "[conn][%p] ERROR, %"PRIu32", %s.",
             Connection,
             Status,
             "Creating initial keys");
@@ -341,7 +341,7 @@ QuicCryptoInitializeTls(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             ConnErrorStatus,
-            "[conn][%p] ERROR, %u, %s.",
+            "[conn][%p] ERROR, %"PRIu32", %s.",
             Connection,
             Status,
             "CxPlatTlsInitialize");
@@ -457,7 +457,7 @@ QuicCryptoOnVersionChange(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             ConnErrorStatus,
-            "[conn][%p] ERROR, %u, %s.",
+            "[conn][%p] ERROR, %"PRIu32", %s.",
             Connection,
             Status,
             "Creating initial keys");
@@ -1924,7 +1924,7 @@ QuicCryptoGenerateNewKeys(
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 ConnErrorStatus,
-                "[conn][%p] ERROR, %u, %s.",
+                "[conn][%p] ERROR, %"PRIu32", %s.",
                 Connection,
                 Status,
                 "Failed to update read packet key.");
@@ -1939,7 +1939,7 @@ QuicCryptoGenerateNewKeys(
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 ConnErrorStatus,
-                "[conn][%p] ERROR, %u, %s.",
+                "[conn][%p] ERROR, %"PRIu32", %s.",
                 Connection,
                 Status,
                 "Failed to update write packet key");
@@ -2114,7 +2114,7 @@ QuicCryptoEncodeServerTicket(
     if (TicketBuffer == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%"PRIu32" bytes)",
             "Server resumption ticket",
             TotalTicketLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -2374,7 +2374,7 @@ QuicCryptoEncodeClientTicket(
     if (ClientTicketBuffer == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%"PRIu32" bytes)",
             "Client resumption ticket",
             ClientTicketBufferLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -2525,7 +2525,7 @@ QuicCryptoDecodeClientTicket(
         if (*ServerTicket == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%"PRIu64" bytes)",
                 "Resumption ticket copy",
                 TicketLength);
             Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -2607,7 +2607,7 @@ QuicCryptoReNegotiateAlpn(
         if (NegotiatedAlpn == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%zu bytes)",
                 "NegotiatedAlpn",
                 NegotiatedAlpnLength);
             QuicConnTransportError(

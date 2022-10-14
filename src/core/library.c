@@ -272,7 +272,7 @@ MsQuicLibraryInitialize(
     if (QUIC_FAILED(Status)) {
         QuicTraceLogWarning(
             LibraryStorageOpenFailed,
-            "[ lib] Failed to open global settings, 0x%x",
+            "[ lib] Failed to open global settings, 0x%"PRIx32,
             Status);
         // Non-fatal, as the process may not have access
     }
@@ -294,7 +294,7 @@ MsQuicLibraryInitialize(
     if (MsQuicLib.DefaultCompatibilityList == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)", "default compatibility list",
+            "Allocation of '%s' failed. (%"PRIu32" bytes)", "default compatibility list",
             CompatibilityListByteLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -338,7 +338,7 @@ MsQuicLibraryInitialize(
     if (MsQuicLib.PerProc == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)", "connection pools",
+            "Allocation of '%s' failed. (%zu bytes)", "connection pools",
             MsQuicLib.ProcessorCount * sizeof(QUIC_LIBRARY_PP));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -381,7 +381,7 @@ MsQuicLibraryInitialize(
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
+                "[ lib] ERROR, %"PRIu32", %s.",
                 Status,
                 "Create reset token hash");
             goto Error;
@@ -394,7 +394,7 @@ MsQuicLibraryInitialize(
         MsQuicLib.PartitionCount);
     QuicTraceEvent(
         LibraryVersion,
-        "[ lib] Version %u.%u.%u.%u",
+        "[ lib] Version %"PRIu32".%"PRIu32".%"PRIu32".%"PRIu32,
         MsQuicLib.Version[0],
         MsQuicLib.Version[1],
         MsQuicLib.Version[2],
@@ -660,13 +660,13 @@ QuicLibraryEnsureExecutionContext(
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
+                "[ lib] ERROR, %"PRIu32", %s.",
                 Status,
                 "CxPlatDataPathInitialize");
         } else {
             QuicTraceEvent(
                 DataPathInitialized,
-                "[data] Initialized, DatapathFeatures=%u",
+                "[data] Initialized, DatapathFeatures=%"PRIu32,
                 CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
         }
     }
@@ -700,6 +700,8 @@ MsQuicGetContext(
 }
 
 #pragma warning(disable:28023) // The function being assigned or passed should have a _Function_class_ annotation
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
@@ -741,6 +743,7 @@ MsQuicSetCallbackHandler(
 
     Handle->ClientContext = Context;
 }
+#pragma GCC diagnostic pop
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -981,7 +984,7 @@ QuicLibrarySetGlobalParam(
         if (NewConfig == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%"PRIu32" bytes)",
                 "Execution config",
                 BufferLength);
             Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -1679,7 +1682,7 @@ Exit:
 
     QuicTraceLogVerbose(
         LibraryMsQuicOpenVersionExit,
-        "[ api] MsQuicOpenVersion, status=0x%x",
+        "[ api] MsQuicOpenVersion, status=0x%"PRIx32,
         Status);
 
     if (QUIC_FAILED(Status)) {
@@ -2114,13 +2117,13 @@ QuicTraceRundown(
         if (MsQuicLib.Datapath != NULL) {
             QuicTraceEvent(
                 DataPathRundown,
-                "[data] Rundown, DatapathFeatures=%u",
+                "[data] Rundown, DatapathFeatures=%"PRIu32,
                 CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
         }
 
         QuicTraceEvent(
             LibraryVersion,
-            "[ lib] Version %u.%u.%u.%u",
+            "[ lib] Version %"PRIu32".%"PRIu32".%"PRIu32".%"PRIu32,
             MsQuicLib.Version[0],
             MsQuicLib.Version[1],
             MsQuicLib.Version[2],
@@ -2229,7 +2232,7 @@ QuicLibraryGetCurrentStatelessRetryKey(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
+            "[ lib] ERROR, %"PRIu32", %s.",
             Status,
             "Create stateless retry key");
         return NULL;

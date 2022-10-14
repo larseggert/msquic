@@ -57,7 +57,6 @@ extern const char PacketLogPrefix[2][2];
 // of a QUIC packet.
 //
 typedef struct QUIC_HEADER_INVARIANT {
-
     union {
         struct {
             uint8_t VARIANT : 7;

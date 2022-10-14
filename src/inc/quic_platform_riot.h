@@ -172,7 +172,7 @@ InterlockedIncrement64(_Interlocked_operand_ int64_t volatile * Addend)
 
 void CxPlatLogAssert(const char * File, int Line, const char * Expr);
 
-#define CXPLAT_STATIC_ASSERT(X, Y) static_assert(X, Y);
+#define CXPLAT_STATIC_ASSERT(X, Y) static_assert(X, Y)
 #define CXPLAT_ANALYSIS_ASSERT(X)
 #define CXPLAT_ANALYSIS_ASSUME(X)
 #define CXPLAT_FRE_ASSERT(exp)                                                 \
@@ -512,7 +512,10 @@ static inline void CxPlatEventInitialize(CXPLAT_EVENT * Event,
     cond_init(&Event->Cond);
 }
 
-inline void CxPlatInternalEventUninitialize(CXPLAT_EVENT * Event) {}
+inline void CxPlatInternalEventUninitialize(CXPLAT_EVENT * Event)
+{
+    UNREFERENCED_PARAMETER(Event);
+}
 
 inline void CxPlatInternalEventSet(CXPLAT_EVENT * Event)
 {
@@ -555,6 +558,8 @@ inline void CxPlatInternalEventWaitForever(CXPLAT_EVENT * Event)
 inline BOOLEAN CxPlatInternalEventWaitWithTimeout(CXPLAT_EVENT * Event,
                                                   uint32_t TimeoutMs)
 {
+    UNREFERENCED_PARAMETER(TimeoutMs);
+
     BOOLEAN WaitSatisfied = FALSE;
     // struct timespec Ts = {0, 0};
 

@@ -72,7 +72,7 @@ MsQuicConfigurationOpen(
     if (Configuration == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "QUIC_CONFIGURATION" ,
             sizeof(QUIC_CONFIGURATION));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -160,7 +160,7 @@ MsQuicConfigurationOpen(
         if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(
                 ConfigurationOpenAppStorageFailed,
-                "[cnfg][%p] Failed to open app specific settings, 0x%x",
+                "[cnfg][%p] Failed to open app specific settings, 0x%"PRIx32,
                 Configuration,
                 Status);
             Status = QUIC_STATUS_SUCCESS; // Non-fatal, as the process may not have access
@@ -216,7 +216,7 @@ Error:
 
     QuicTraceEvent(
         ApiExitStatus,
-        "[ api] Exit %u",
+        "[ api] Exit %"PRIu32,
         Status);
 
     return Status;
@@ -369,7 +369,7 @@ MsQuicConfigurationLoadCredential(
 
     QuicTraceEvent(
         ApiExitStatus,
-        "[ api] Exit %u",
+        "[ api] Exit %"PRIu32,
         Status);
 
     return Status;

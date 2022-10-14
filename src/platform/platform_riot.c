@@ -54,7 +54,7 @@ CxPlatEventQEnqueue(CXPLAT_EVENTQ * queue, CXPLAT_SQE * sqe, void * user_data)
 {
     UNREFERENCED_PARAMETER(sqe);
 
-    printf("TODO CxPlatEventQEnqueue %p\n", queue);
+    puts("TODO CxPlatEventQEnqueuep");
 
     // FIXME: not freed
     CXPLAT_CQE * const e = malloc(sizeof(CXPLAT_CQE));
@@ -77,10 +77,10 @@ uint32_t CxPlatEventQDequeue(CXPLAT_EVENTQ * queue,
     UNREFERENCED_PARAMETER(count);
 
     if (wait_time == UINT32_MAX) {
-        printf("TODO CxPlatEventQDequeue %p\n", queue);
+        puts("TODO CxPlatEventQDequeue");
         *events = *(CXPLAT_CQE *)event_wait(queue);
     } else {
-        printf("TODO CxPlatEventQDequeue %p %" PRIu32 "\n", queue, wait_time);
+        printf("TODO CxPlatEventQDequeue %" PRIu32 "\n", wait_time);
         *events = *(CXPLAT_CQE *)event_wait_timeout_ztimer(queue, ZTIMER_MSEC,
                                                            wait_time);
     }
@@ -453,7 +453,7 @@ void CxPlatSetAllocFailDenominator(int32_t Value)
     UNREFERENCED_PARAMETER(Value);
 }
 
-int32_t CxPlatGetAllocFailDenominator()
+int32_t CxPlatGetAllocFailDenominator(void)
 {
     return 0;
 }
@@ -487,11 +487,10 @@ CxPlatThreadCreate(CXPLAT_THREAD_CONFIG * Config, CXPLAT_THREAD * Thread)
 
     *Thread = thread_create(stack, THREAD_STACKSIZE_DEFAULT, prio, 0,
                             Config->Callback, Config->Context, Config->Name);
-    printf("%d\n", *Thread);
     if (*Thread < 0) {
         Status = errno;
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", Status,
-                       "thread_create failed");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %" PRIu32 ", %s.",
+                       Status, "thread_create failed");
     }
 
     return Status;
@@ -541,8 +540,8 @@ void CxPlatLogAssert(_In_z_ const char * File,
                      _In_ int Line,
                      _In_z_ const char * Expr)
 {
-    QuicTraceEvent(LibraryAssert, "[ lib] ASSERT, %u:%s - %s.", (uint32_t)Line,
-                   File, Expr);
+    QuicTraceEvent(LibraryAssert, "[ lib] ASSERT, %" PRIu32 ":%s - %s.",
+                   (uint32_t)Line, File, Expr);
 }
 
 int _strnicmp(const char * s1, const char * s2, unsigned int sz)
@@ -601,7 +600,19 @@ void clog_printf(const char * format, ...)
         *match++ = ' ';
     }
 
+    match = reformat;
+    while ((match = strstr(match, "!ADDR!")) != 0) {
+        *match++ = 's';
+        *match++ = ' ';
+        *match++ = ' ';
+        *match++ = ' ';
+        *match++ = ' ';
+        *match++ = ' ';
+    }
+
     // TODO: add other replacements
+    if (strstr(reformat, "%!"))
+        puts(reformat);
     CXPLAT_DBG_ASSERT(strstr(reformat, "%!") == 0);
 
     va_list ap;

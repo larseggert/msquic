@@ -235,8 +235,7 @@ QuicCidNewSource(
 inline
 _Success_(return != NULL)
 QUIC_CID_LIST_ENTRY*
-QuicCidNewRandomDestination(
-    )
+QuicCidNewRandomDestination(void)
 {
     QUIC_CID_LIST_ENTRY* Entry =
         (QUIC_CID_LIST_ENTRY*)

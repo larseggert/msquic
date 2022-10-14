@@ -118,7 +118,7 @@ QuicWorkerInitialize(
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 WorkerErrorStatus,
-                "[wrkr][%p] ERROR, %u, %s.",
+                "[wrkr][%p] ERROR, %"PRIu32", %s.",
                 Worker,
                 Status,
                 "CxPlatThreadCreate");
@@ -333,7 +333,7 @@ QuicWorkerUpdateQueueDelay(
     Worker->AverageQueueDelay = (7 * Worker->AverageQueueDelay + TimeInQueueUs) / 8;
     QuicTraceEvent(
         WorkerQueueDelayUpdated,
-        "[wrkr][%p] QueueDelay = %u",
+        "[wrkr][%p] QueueDelay = %"PRIu32,
         Worker,
         Worker->AverageQueueDelay);
 }
@@ -347,7 +347,7 @@ QuicWorkerResetQueueDelay(
     Worker->AverageQueueDelay = 0;
     QuicTraceEvent(
         WorkerQueueDelayUpdated,
-        "[wrkr][%p] QueueDelay = %u",
+        "[wrkr][%p] QueueDelay = %"PRIu32,
         Worker,
         Worker->AverageQueueDelay);
 }
@@ -706,7 +706,7 @@ QuicWorkerLoop(
     Worker->ExecutionContext.NextTimeUs = Worker->TimerWheel.NextExpirationTime;
     QuicTraceEvent(
         WorkerActivityStateUpdated,
-        "[wrkr][%p] IsActive = %hhu, Arg = %u",
+        "[wrkr][%p] IsActive = %hhu, Arg = %"PRIu32,
         Worker,
         Worker->IsActive,
         UINT32_MAX);
@@ -778,7 +778,7 @@ QuicWorkerPoolInitialize(
     if (WorkerPool == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "QUIC_WORKER_POOL",
             WorkerPoolSize);
         return QUIC_STATUS_OUT_OF_MEMORY;

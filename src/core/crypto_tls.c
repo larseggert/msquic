@@ -858,7 +858,7 @@ QuicCryptoTlsEncodeTransportParameters(
     if (TPBufBase == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "TP buffer",
             CxPlatTlsTPHeaderSize + RequiredTPLen);
         return NULL;
@@ -923,7 +923,7 @@ QuicCryptoTlsEncodeTransportParameters(
         QuicTraceLogConnVerbose(
             EncodeTPMaxUdpPayloadSize,
             Connection,
-            "TP: Max Udp Payload Size (%llu bytes)",
+            "TP: Max Udp Payload Size (%"PRIu64" bytes)",
             TransportParams->MaxUdpPayloadSize);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_DATA) {
@@ -934,7 +934,7 @@ QuicCryptoTlsEncodeTransportParameters(
         QuicTraceLogConnVerbose(
             EncodeTPInitMaxData,
             Connection,
-            "TP: Max Data (%llu bytes)",
+            "TP: Max Data (%"PRIu64" bytes)",
             TransportParams->InitialMaxData);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL) {
@@ -945,7 +945,7 @@ QuicCryptoTlsEncodeTransportParameters(
         QuicTraceLogConnVerbose(
             EncodeTPInitMaxStreamDataBidiLocal,
             Connection,
-            "TP: Max Local Bidirectional Stream Data (%llu bytes)",
+            "TP: Max Local Bidirectional Stream Data (%"PRIu64" bytes)",
             TransportParams->InitialMaxStreamDataBidiLocal);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE) {
@@ -956,7 +956,7 @@ QuicCryptoTlsEncodeTransportParameters(
         QuicTraceLogConnVerbose(
             EncodeTPInitMaxStreamDataBidiRemote,
             Connection,
-            "TP: Max Remote Bidirectional Stream Data (%llu bytes)",
+            "TP: Max Remote Bidirectional Stream Data (%"PRIu64" bytes)",
             TransportParams->InitialMaxStreamDataBidiRemote);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI) {
@@ -1085,7 +1085,7 @@ QuicCryptoTlsEncodeTransportParameters(
         QuicTraceLogConnVerbose(
             EncodeMaxDatagramFrameSize,
             Connection,
-            "TP: Max Datagram Frame Size (%llu bytes)",
+            "TP: Max Datagram Frame Size (%"PRIu64" bytes)",
             TransportParams->MaxDatagramFrameSize);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION) {
@@ -1379,7 +1379,7 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
             QuicTraceLogConnVerbose(
                 DecodeTPMaxUdpPayloadSize,
                 Connection,
-                "TP: Max Udp Payload Size (%llu bytes)",
+                "TP: Max Udp Payload Size (%"PRIu64" bytes)",
                 TransportParams->MaxUdpPayloadSize);
             break;
 
@@ -1397,7 +1397,7 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
             QuicTraceLogConnVerbose(
                 DecodeTPInitMaxData,
                 Connection,
-                "TP: Max Data (%llu bytes)",
+                "TP: Max Data (%"PRIu64" bytes)",
                 TransportParams->InitialMaxData);
             break;
 
@@ -1415,7 +1415,7 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
             QuicTraceLogConnVerbose(
                 DecodeTPInitMaxStreamDataBidiLocal,
                 Connection,
-                "TP: Max Local Bidirectional Stream Data (%llu bytes)",
+                "TP: Max Local Bidirectional Stream Data (%"PRIu64" bytes)",
                 TransportParams->InitialMaxStreamDataBidiLocal);
             break;
 
@@ -1433,7 +1433,7 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
             QuicTraceLogConnVerbose(
                 DecodeTPInitMaxStreamDataBidiRemote,
                 Connection,
-                "TP: Max Remote Bidirectional Stream Data (%llu bytes)",
+                "TP: Max Remote Bidirectional Stream Data (%"PRIu64" bytes)",
                 TransportParams->InitialMaxStreamDataBidiRemote);
             break;
 
@@ -1697,7 +1697,7 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
             QuicTraceLogConnVerbose(
                 DecodeTPMaxDatagramFrameSize,
                 Connection,
-                "TP: Max Datagram Frame Size (%llu bytes)",
+                "TP: Max Datagram Frame Size (%"PRIu64" bytes)",
                 TransportParams->MaxDatagramFrameSize);
             break;
 
@@ -1748,7 +1748,7 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
                 if (TransportParams->VersionInfo == NULL) {
                     QuicTraceEvent(
                         AllocFailure,
-                        "Allocation of '%s' failed. (%llu bytes)",
+                        "Allocation of '%s' failed. (%zu bytes)",
                         "Version Negotiation Info",
                         Length);
                     break;
@@ -1862,7 +1862,7 @@ QuicCryptoTlsCopyTransportParameters(
         if (Destination->VersionInfo == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%"PRIu32" bytes)",
                 "Version Negotiation Info",
                 Source->VersionInfoLength);
             return QUIC_STATUS_OUT_OF_MEMORY;

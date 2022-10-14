@@ -367,7 +367,7 @@ QuicPacketGenerateRetryIntegrity(
     if (RetryPseudoPacket == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "RetryPseudoPacket",
             RetryPseudoPacketLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;

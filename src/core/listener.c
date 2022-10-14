@@ -55,7 +55,7 @@ MsQuicListenerOpen(
     if (Listener == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "listener",
             sizeof(QUIC_LISTENER));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -97,7 +97,7 @@ Error:
 
     QuicTraceEvent(
         ApiExitStatus,
-        "[ api] Exit %u",
+        "[ api] Exit %"PRIu32,
         Status);
 
     return Status;
@@ -247,7 +247,7 @@ MsQuicListenerStart(
     if (AlpnList == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%"PRIu32" bytes)",
             "AlpnList" ,
             AlpnListLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -324,7 +324,7 @@ MsQuicListenerStart(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             ListenerErrorStatus,
-            "[list][%p] ERROR, %u, %s.",
+            "[list][%p] ERROR, %"PRIu32", %s.",
             Listener,
             Status,
             "Get binding");
@@ -339,7 +339,7 @@ MsQuicListenerStart(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             ListenerErrorStatus,
-            "[list][%p] ERROR, %u, %s.",
+            "[list][%p] ERROR, %"PRIu32", %s.",
             Listener,
             Status,
             "Register with binding");
@@ -380,7 +380,7 @@ Exit:
 
     QuicTraceEvent(
         ApiExitStatus,
-        "[ api] Exit %u",
+        "[ api] Exit %"PRIu32,
         Status);
 
     return Status;
@@ -633,7 +633,7 @@ QuicListenerClaimConnection(
         Connection->State.ExternalOwner = FALSE;
         QuicTraceEvent(
             ListenerErrorStatus,
-            "[list][%p] ERROR, %u, %s.",
+            "[list][%p] ERROR, %"PRIu32", %s.",
             Listener,
             Status,
             "NEW_CONNECTION callback");

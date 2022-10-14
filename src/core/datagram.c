@@ -370,7 +370,7 @@ QuicDatagramQueueSend(
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%zu bytes)",
                 "DATAGRAM_SEND operation",
                 0);
             goto Exit;
@@ -437,7 +437,7 @@ QuicDatagramSendFlush(
         QuicTraceLogConnVerbose(
             DatagramSendQueued,
             Connection,
-            "Datagram [%p] queued with %llu bytes (flags 0x%x)",
+            "Datagram [%p] queued with %"PRIu64" bytes (flags 0x%x)",
             SendRequest,
             SendRequest->TotalLength,
             SendRequest->Flags);

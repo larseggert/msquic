@@ -848,7 +848,7 @@ QuicConnLogStatistics(
 
     QuicTraceEvent(
         ConnStats,
-        "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s",
+        "[conn][%p] STATS: SRtt=%"PRIu32" CongestionCount=%"PRIu32" PersistentCongestionCount=%"PRIu32" SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%"PRIu32" Cc=%s",
         Connection,
         Path->SmoothedRtt,
         Connection->Stats.Send.CongestionCount,

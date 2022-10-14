@@ -27,31 +27,34 @@ Abstract:
     QUIC_LOGS_MANIFEST_ETW      Write to Windows ETW framework
     QUIC_LOGS_RIOT              Write to RIOT console
 
-    QUIC_CLOG                   Bypasses these mechanisms and uses CLOG to generate logging
+    QUIC_CLOG                   Bypasses these mechanisms and uses CLOG to
+generate logging
 
  --*/
 
 #pragma once
 
 #if !defined(QUIC_CLOG)
-#if !defined(QUIC_EVENTS_STUB) && !defined(QUIC_EVENTS_MANIFEST_ETW) && !defined(QUIC_EVENTS_RIOT)
+#if !defined(QUIC_EVENTS_STUB) && !defined(QUIC_EVENTS_MANIFEST_ETW) &&        \
+    !defined(QUIC_EVENTS_RIOT)
 #error "Must define one QUIC_EVENTS_*"
 #endif
 
-#if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_MANIFEST_ETW) && !defined(QUIC_LOGS_RIOT)
+#if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_MANIFEST_ETW) &&            \
+    !defined(QUIC_LOGS_RIOT)
 #error "Must define one QUIC_LOGS_*"
 #endif
 #endif
 
 typedef enum QUIC_FLOW_BLOCK_REASON {
-    QUIC_FLOW_BLOCKED_SCHEDULING            = 0x01,
-    QUIC_FLOW_BLOCKED_PACING                = 0x02,
-    QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT    = 0x04,
-    QUIC_FLOW_BLOCKED_CONGESTION_CONTROL    = 0x08,
-    QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL     = 0x10,
-    QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL= 0x20,
-    QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL   = 0x40,
-    QUIC_FLOW_BLOCKED_APP                   = 0x80
+    QUIC_FLOW_BLOCKED_SCHEDULING = 0x01,
+    QUIC_FLOW_BLOCKED_PACING = 0x02,
+    QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT = 0x04,
+    QUIC_FLOW_BLOCKED_CONGESTION_CONTROL = 0x08,
+    QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL = 0x10,
+    QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL = 0x20,
+    QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL = 0x40,
+    QUIC_FLOW_BLOCKED_APP = 0x80
 } QUIC_FLOW_BLOCK_REASON;
 
 typedef enum QUIC_TRACE_PACKET_TYPE {
@@ -106,38 +109,29 @@ typedef enum QUIC_TRACE_API_TYPE {
 #ifdef __cplusplus
 extern "C"
 #endif
-typedef
-_Function_class_(QUIC_TRACE_RUNDOWN_CALLBACK)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-(QUIC_TRACE_RUNDOWN_CALLBACK)(
-    void
-    );
+    typedef _Function_class_(QUIC_TRACE_RUNDOWN_CALLBACK) _IRQL_requires_max_(
+        PASSIVE_LEVEL) void(QUIC_TRACE_RUNDOWN_CALLBACK)(void);
 
-extern QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
+extern QUIC_TRACE_RUNDOWN_CALLBACK * QuicTraceRundownCallback;
 
 #ifdef QUIC_CLOG
 
 #define QuicTraceLogStreamVerboseEnabled() TRUE
-#define QuicTraceLogErrorEnabled()   TRUE
+#define QuicTraceLogErrorEnabled() TRUE
 #define QuicTraceLogWarningEnabled() TRUE
-#define QuicTraceLogInfoEnabled()    TRUE
+#define QuicTraceLogInfoEnabled() TRUE
 #define QuicTraceLogVerboseEnabled() TRUE
 #define QuicTraceEventEnabled(x) TRUE
 
-#define CASTED_CLOG_BYTEARRAY(Len, Data) CLOG_BYTEARRAY((unsigned char)(Len), (const unsigned char*)(Data))
+#define CASTED_CLOG_BYTEARRAY(Len, Data)                                       \
+    CLOG_BYTEARRAY((unsigned char)(Len), (const unsigned char *)(Data))
 #else
 
 #ifdef QUIC_EVENTS_STUB
 
 #define QuicTraceEventEnabled(Name) FALSE
 
-inline
-void
-QuicTraceEventStubVarArgs(
-    _In_ const void* Fmt,
-    ...
-    )
+inline void QuicTraceEventStubVarArgs(_In_ const void * Fmt, ...)
 {
     UNREFERENCED_PARAMETER(Fmt);
 }
@@ -156,19 +150,14 @@ QuicTraceEventStubVarArgs(
 #ifdef __cplusplus
 extern "C"
 #endif
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_IRQL_requires_same_
-void
-NTAPI
-QuicEtwCallback(
-    _In_ LPCGUID SourceId,
-    _In_ ULONG ControlCode,
-    _In_ UCHAR Level,
-    _In_ ULONGLONG MatchAnyKeyword,
-    _In_ ULONGLONG MatchAllKeyword,
-    _In_opt_ PEVENT_FILTER_DESCRIPTOR FilterData,
-    _Inout_opt_ PVOID CallbackContext
-    );
+    _IRQL_requires_max_(PASSIVE_LEVEL) _IRQL_requires_same_ void NTAPI
+    QuicEtwCallback(_In_ LPCGUID SourceId,
+                    _In_ ULONG ControlCode,
+                    _In_ UCHAR Level,
+                    _In_ ULONGLONG MatchAnyKeyword,
+                    _In_ ULONGLONG MatchAllKeyword,
+                    _In_opt_ PEVENT_FILTER_DESCRIPTOR FilterData,
+                    _Inout_opt_ PVOID CallbackContext);
 
 //
 // Defining MCGEN_PRIVATE_ENABLE_CALLBACK_V2, makes McGenControlCallbackV2
@@ -177,8 +166,8 @@ QuicEtwCallback(
 #define MCGEN_PRIVATE_ENABLE_CALLBACK_V2 QuicEtwCallback
 
 #pragma warning(push) // Don't care about warnings from generated files
-#pragma warning(disable:6001)
-#pragma warning(disable:26451)
+#pragma warning(disable : 6001)
+#pragma warning(disable : 26451)
 #include "MsQuicEtw.h"
 #pragma warning(pop)
 
@@ -187,98 +176,104 @@ QuicEtwCallback(
 #define _QuicTraceEvent(Name, Args) EventWriteQuic##Name##Args
 #define QuicTraceEvent(Name, Fmt, ...) _QuicTraceEvent(Name, (__VA_ARGS__))
 #else
-#define QuicTraceEvent(Name, Fmt, ...) EventWriteQuic##Name (__VA_ARGS__)
+#define QuicTraceEvent(Name, Fmt, ...) EventWriteQuic##Name(__VA_ARGS__)
 #endif
 
-#define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
-#define CASTED_CLOG_BYTEARRAY(Len, Data) CLOG_BYTEARRAY((unsigned char)(Len), (const unsigned char*)(Data))
+#define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t *)(Data)
+#define CASTED_CLOG_BYTEARRAY(Len, Data)                                       \
+    CLOG_BYTEARRAY((unsigned char)(Len), (const unsigned char *)(Data))
 
 
 #endif // QUIC_EVENTS_MANIFEST_ETW
 
 #ifdef QUIC_LOGS_STUB
 
-#define QuicTraceLogErrorEnabled()   FALSE
+#define QuicTraceLogErrorEnabled() FALSE
 #define QuicTraceLogWarningEnabled() FALSE
-#define QuicTraceLogInfoEnabled()    FALSE
+#define QuicTraceLogInfoEnabled() FALSE
 #define QuicTraceLogVerboseEnabled() FALSE
 
-inline
-void
-QuicTraceStubVarArgs(
-    _In_ const void* Fmt,
-    ...
-    )
+inline void QuicTraceStubVarArgs(_In_ const void * Fmt, ...)
 {
     UNREFERENCED_PARAMETER(Fmt);
 }
 
-#define QuicTraceLogError(X,...)            QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogWarning(X,...)          QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogInfo(X,...)             QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogVerbose(X,...)          QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogError(X, ...) QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogWarning(X, ...) QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogInfo(X, ...) QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogVerbose(X, ...) QuicTraceStubVarArgs(__VA_ARGS__)
 
-#define QuicTraceLogConnError(X,...)        QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogConnWarning(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogConnInfo(X,...)         QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogConnVerbose(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogConnError(X, ...) QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogConnWarning(X, ...) QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogConnInfo(X, ...) QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogConnVerbose(X, ...) QuicTraceStubVarArgs(__VA_ARGS__)
 
 #define QuicTraceLogStreamVerboseEnabled() FALSE
 
-#define QuicTraceLogStreamError(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogStreamWarning(X,...)    QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogStreamInfo(X,...)       QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogStreamVerbose(X,...)    QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogStreamError(X, ...) QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogStreamWarning(X, ...) QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogStreamInfo(X, ...) QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogStreamVerbose(X, ...) QuicTraceStubVarArgs(__VA_ARGS__)
 
 #endif // QUIC_LOGS_STUB
 
 #ifdef QUIC_LOGS_MANIFEST_ETW
 
 #pragma warning(push) // Don't care about warnings from generated files
-#pragma warning(disable:6001)
-#pragma warning(disable:26451)
+#pragma warning(disable : 6001)
+#pragma warning(disable : 26451)
 #include "MsQuicEtw.h"
 #pragma warning(pop)
 
 #include <stdio.h>
 
-#define QuicTraceLogErrorEnabled()   EventEnabledQuicLogError()
+#define QuicTraceLogErrorEnabled() EventEnabledQuicLogError()
 #define QuicTraceLogWarningEnabled() EventEnabledQuicLogWarning()
-#define QuicTraceLogInfoEnabled()    EventEnabledQuicLogInfo()
+#define QuicTraceLogInfoEnabled() EventEnabledQuicLogInfo()
 #define QuicTraceLogVerboseEnabled() EventEnabledQuicLogVerbose()
 
 #define QUIC_ETW_BUFFER_LENGTH 128
 
-#define LogEtw(EventName, Fmt, ...) \
-    if (EventEnabledQuicLog##EventName()) { \
-        char EtwBuffer[QUIC_ETW_BUFFER_LENGTH]; \
-        _snprintf_s(EtwBuffer, sizeof(EtwBuffer), _TRUNCATE, Fmt, ##__VA_ARGS__); \
-        EventWriteQuicLog##EventName##_AssumeEnabled(EtwBuffer); \
+#define LogEtw(EventName, Fmt, ...)                                            \
+    if (EventEnabledQuicLog##EventName()) {                                    \
+        char EtwBuffer[QUIC_ETW_BUFFER_LENGTH];                                \
+        _snprintf_s(EtwBuffer, sizeof(EtwBuffer), _TRUNCATE, Fmt,              \
+                    ##__VA_ARGS__);                                            \
+        EventWriteQuicLog##EventName##_AssumeEnabled(EtwBuffer);               \
     }
 
-#define LogEtwType(Type, EventName, Ptr, Fmt, ...) \
-    if (EventEnabledQuic##Type##Log##EventName()) { \
-        char EtwBuffer[QUIC_ETW_BUFFER_LENGTH]; \
-        _snprintf_s(EtwBuffer, sizeof(EtwBuffer), _TRUNCATE, Fmt, ##__VA_ARGS__); \
-        EventWriteQuic##Type##Log##EventName##_AssumeEnabled(Ptr, EtwBuffer); \
+#define LogEtwType(Type, EventName, Ptr, Fmt, ...)                             \
+    if (EventEnabledQuic##Type##Log##EventName()) {                            \
+        char EtwBuffer[QUIC_ETW_BUFFER_LENGTH];                                \
+        _snprintf_s(EtwBuffer, sizeof(EtwBuffer), _TRUNCATE, Fmt,              \
+                    ##__VA_ARGS__);                                            \
+        EventWriteQuic##Type##Log##EventName##_AssumeEnabled(Ptr, EtwBuffer);  \
     }
 
-#define QuicTraceLogError(Name, Fmt, ...)               LogEtw(Error, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogWarning(Name, Fmt, ...)             LogEtw(Warning, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogInfo(Name, Fmt, ...)                LogEtw(Info, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogVerbose(Name, Fmt, ...)             LogEtw(Verbose, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogError(Name, Fmt, ...) LogEtw(Error, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogWarning(Name, Fmt, ...) LogEtw(Warning, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogInfo(Name, Fmt, ...) LogEtw(Info, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogVerbose(Name, Fmt, ...) LogEtw(Verbose, Fmt, ##__VA_ARGS__)
 
-#define QuicTraceLogConnError(Name, Ptr, Fmt, ...)      LogEtwType(Conn, Error, Ptr, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogConnWarning(Name, Ptr, Fmt, ...)    LogEtwType(Conn, Warning, Ptr, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogConnInfo(Name, Ptr, Fmt, ...)       LogEtwType(Conn, Info, Ptr, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogConnVerbose(Name, Ptr, Fmt, ...)    LogEtwType(Conn, Verbose, Ptr, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogConnError(Name, Ptr, Fmt, ...)                             \
+    LogEtwType(Conn, Error, Ptr, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogConnWarning(Name, Ptr, Fmt, ...)                           \
+    LogEtwType(Conn, Warning, Ptr, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogConnInfo(Name, Ptr, Fmt, ...)                              \
+    LogEtwType(Conn, Info, Ptr, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogConnVerbose(Name, Ptr, Fmt, ...)                           \
+    LogEtwType(Conn, Verbose, Ptr, Fmt, ##__VA_ARGS__)
 
 #define QuicTraceLogStreamVerboseEnabled() EventEnabledQuicStreamLogVerbose()
 
-#define QuicTraceLogStreamError(Name, Ptr, Fmt, ...)    LogEtwType(Stream, Error, Ptr, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogStreamWarning(Name, Ptr, Fmt, ...)  LogEtwType(Stream, Warning, Ptr, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogStreamInfo(Name, Ptr, Fmt, ...)     LogEtwType(Stream, Info, Ptr, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogStreamVerbose(Name, Ptr, Fmt, ...)  LogEtwType(Stream, Verbose, Ptr, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogStreamError(Name, Ptr, Fmt, ...)                           \
+    LogEtwType(Stream, Error, Ptr, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogStreamWarning(Name, Ptr, Fmt, ...)                         \
+    LogEtwType(Stream, Warning, Ptr, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogStreamInfo(Name, Ptr, Fmt, ...)                            \
+    LogEtwType(Stream, Info, Ptr, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogStreamVerbose(Name, Ptr, Fmt, ...)                         \
+    LogEtwType(Stream, Verbose, Ptr, Fmt, ##__VA_ARGS__)
 
 #endif // QUIC_LOGS_MANIFEST_ETW
 
@@ -295,15 +290,21 @@ QuicTraceStubVarArgs(
 #define QuicTraceEventEnabled(x) TRUE
 
 #define CASTED_CLOG_BYTEARRAY(Len, Data)                                       \
-  hex2str((const uint8_t *)(Data), (Len), (char[256]){""},                     \
-          CXPLAT_MAX(255, (Len)*2 + 1))
+    hex2str((const uint8_t *)(Data), (Len), (char[256]){""},                   \
+            CXPLAT_MAX(255, (Len)*2 + 1))
 
 void //__attribute__((format(printf, 1, 2)))
-clog_printf(const char *format, ...);
+clog_printf(const char * format, ...);
 
 // FIXME: the 42-hack strips "/data/riotbuild/riotbase/build/pkg/msquic/"
 #define loc_printf(Fmt, ...)                                                   \
-  clog_printf("%s:%d " Fmt, &(__FILE__[42]), __LINE__, ##__VA_ARGS__)
+    clog_printf("%s:%d " Fmt, &(__FILE__[42]), __LINE__, ##__VA_ARGS__)
+
+#define loc_printf2(A, B, Fmt, ...)                                            \
+    do {                                                                       \
+        UNREFERENCED_PARAMETER(B);                                             \
+        clog_printf("%s:%d " Fmt, &(__FILE__[42]), __LINE__, ##__VA_ARGS__);   \
+    } while (0)
 
 #define QuicTraceLogError(Name, Fmt, ...) loc_printf(Fmt "\n", ##__VA_ARGS__)
 #define QuicTraceLogWarning(Name, Fmt, ...) loc_printf(Fmt "\n", ##__VA_ARGS__)
@@ -311,23 +312,22 @@ clog_printf(const char *format, ...);
 #define QuicTraceLogVerbose(Name, Fmt, ...) loc_printf(Fmt "\n", ##__VA_ARGS__)
 
 #define QuicTraceLogStreamError(Stream, Name, Fmt, ...)                        \
-  loc_printf(Fmt "\n", ##__VA_ARGS__)
+    loc_printf2(Stream, Name, Fmt "\n", ##__VA_ARGS__)
 #define QuicTraceLogStreamWarning(Stream, Name, Fmt, ...)                      \
-  loc_printf(Fmt "\n", ##__VA_ARGS__)
+    loc_printf2(Stream, Name, Fmt "\n", ##__VA_ARGS__)
 #define QuicTraceLogStreamInfo(Stream, Name, Fmt, ...)                         \
-  loc_printf(Fmt "\n", ##__VA_ARGS__)
+    loc_printf2(Stream, Name, Fmt "\n", ##__VA_ARGS__)
 #define QuicTraceLogStreamVerbose(Stream, Name, Fmt, ...)                      \
-  loc_printf(Fmt "\n", ##__VA_ARGS__)
+    loc_printf2(Stream, Name, Fmt "\n", ##__VA_ARGS__)
 
 #define QuicTraceLogConnError(Name, Ptr, Fmt, ...)                             \
-  loc_printf(Fmt "\n", ##__VA_ARGS__)
+    loc_printf2(Name, Ptr, Fmt "\n", ##__VA_ARGS__)
 #define QuicTraceLogConnWarning(Name, Ptr, Fmt, ...)                           \
-  loc_printf(Fmt "\n", ##__VA_ARGS__)
+    loc_printf2(Name, Ptr, Fmt "\n", ##__VA_ARGS__)
 #define QuicTraceLogConnInfo(Name, Ptr, Fmt, ...)                              \
-  loc_printf(Fmt "\n", ##__VA_ARGS__)
+    loc_printf2(Name, Ptr, Fmt "\n", ##__VA_ARGS__)
 #define QuicTraceLogConnVerbose(Name, Ptr, Fmt, ...)                           \
-  loc_printf(Fmt "\n", ##__VA_ARGS__)
+    loc_printf2(Name, Ptr, Fmt "\n", ##__VA_ARGS__)
 
 #define QuicTraceEvent(Name, Fmt, ...) loc_printf(Fmt "\n", ##__VA_ARGS__)
-
 #endif

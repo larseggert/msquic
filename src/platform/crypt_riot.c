@@ -11,19 +11,18 @@ Abstract:
 
 #include "platform_internal.h"
 
+#include <wolfssl/wolfcrypt/settings.h>
+
+#include <wolfssl/wolfcrypt/aes.h>
+#include <wolfssl/wolfcrypt/error-crypt.h>
 #include <wolfssl/wolfcrypt/hmac.h>
 #include <wolfssl/wolfcrypt/sha512.h>
-#include <wolfssl/wolfcrypt/wc_port.h>
+// #include <wolfssl/wolfcrypt/wc_port.h>
 
 
-typedef struct CXPLAT_HASH {
-    struct Hmac Mac;
-} CXPLAT_HASH;
-
-QUIC_STATUS
-CxPlatCryptInitialize(void)
+QUIC_STATUS CxPlatCryptInitialize(void)
 {
-    if (wolfCrypt_Init() != 0) {
+    if (wolfCrypt_Init()) {
         QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
                        "wolfCrypt_Init failed");
         return QUIC_STATUS_TLS_ERROR;
@@ -31,57 +30,88 @@ CxPlatCryptInitialize(void)
     return QUIC_STATUS_SUCCESS;
 }
 
+
 void CxPlatCryptUninitialize(void)
 {
-    if (wolfCrypt_Cleanup() != 0) {
+    if (wolfCrypt_Cleanup()) {
         QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
                        "wolfCrypt_Cleanup failed");
     }
 }
 
-void CxPlatHashFree(CXPLAT_HASH * Hash)
-{
-    if (Hash) {
-        CXPLAT_FREE(Hash, QUIC_POOL_TLS_HASH);
-    }
-}
 
 void CxPlatKeyFree(CXPLAT_KEY * Key)
 {
-    UNREFERENCED_PARAMETER(Key);
+    free(Key);
 }
 
-QUIC_STATUS
-CxPlatKeyCreate(CXPLAT_AEAD_TYPE AeadType,
-                const uint8_t * const RawKey,
-                CXPLAT_KEY ** NewKey)
-{
-    UNREFERENCED_PARAMETER(AeadType);
-    UNREFERENCED_PARAMETER(RawKey);
-    UNREFERENCED_PARAMETER(NewKey);
 
-    puts("TODO CxPlatKeyCreate");
-    return QUIC_STATUS_SUCCESS;
-}
-
-QUIC_STATUS
-CxPlatHashCreate(CXPLAT_HASH_TYPE HashType,
-                 const uint8_t * const Salt,
-                 uint32_t SaltLength,
-                 CXPLAT_HASH ** NewHash)
+QUIC_STATUS CxPlatKeyCreate(CXPLAT_AEAD_TYPE AeadType,
+                            const uint8_t * const RawKey,
+                            CXPLAT_KEY ** NewKey)
 {
-    puts("CxPlatHashCreate");
+    // puts("CxPlatKeyCreate");
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    CXPLAT_HASH * Hash =
-        CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_HASH), QUIC_POOL_TLS_HASH);
-    if (Hash == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)",
+
+    struct Aes * enc = malloc(sizeof(*enc));
+    if (enc == 0) {
+        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "malloc failed");
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+
+    word32 len;
+    switch (AeadType) {
+    case CXPLAT_AEAD_AES_128_GCM:
+        len = 16;
+        break;
+    case CXPLAT_AEAD_AES_256_GCM:
+        len = 32;
+        break;
+    case CXPLAT_AEAD_CHACHA20_POLY1305:
+    default:
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+        goto Exit;
+    }
+
+    if (wc_AesGcmSetKey(enc, RawKey, len)) {
+        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
+                       "wc_AesGcmSetKey failed");
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
+    }
+
+    *NewKey = (CXPLAT_KEY *)enc;
+    enc = 0;
+
+Exit:
+    free(enc);
+    return Status;
+}
+
+
+void CxPlatHashFree(CXPLAT_HASH * Hash)
+{
+    free(Hash);
+}
+
+
+QUIC_STATUS CxPlatHashCreate(CXPLAT_HASH_TYPE HashType,
+                             const uint8_t * const Salt,
+                             uint32_t SaltLength,
+                             CXPLAT_HASH ** NewHash)
+{
+    // puts("CxPlatHashCreate");
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    struct Hmac * Hash = malloc(sizeof(*Hash));
+    if (Hash == 0) {
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%zu bytes)",
                        "Crypt Hash Context", sizeof(Hash));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
-    CxPlatZeroMemory(Hash, sizeof(CXPLAT_HASH));
 
     int type;
     switch (HashType) {
@@ -99,42 +129,43 @@ CxPlatHashCreate(CXPLAT_HASH_TYPE HashType,
         goto Exit;
     }
 
-    const int err = wc_HmacSetKey(&Hash->Mac, type, Salt, SaltLength);
-    if (err != 0) {
+    const int err = wc_HmacSetKey(Hash, type, Salt, SaltLength);
+    if (err) {
         QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
                        wc_GetErrorString(err));
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
-    *NewHash = Hash;
-    Hash = NULL;
+    *NewHash = (CXPLAT_HASH *)Hash;
+    Hash = 0;
 
 Exit:
 
-    CxPlatHashFree(Hash);
+    free(Hash);
 
     return Status;
 }
 
-QUIC_STATUS
-CxPlatHashCompute(CXPLAT_HASH * Hash,
-                  const uint8_t * const Input,
-                  uint32_t InputLength,
-                  uint32_t OutputLength,
-                  uint8_t * const Output)
+QUIC_STATUS CxPlatHashCompute(CXPLAT_HASH * Hash,
+                              const uint8_t * const Input,
+                              uint32_t InputLength,
+                              uint32_t OutputLength,
+                              uint8_t * const Output)
 {
-    puts("CxPlatHashCompute");
+    UNREFERENCED_PARAMETER(OutputLength);
 
-    int err = wc_HmacUpdate(&Hash->Mac, Input, InputLength);
-    if (!err) {
+    // puts("CxPlatHashCompute");
+
+    int err = wc_HmacUpdate((struct Hmac *)Hash, Input, InputLength);
+    if (err) {
         QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
                        wc_GetErrorString(err));
         return QUIC_STATUS_INTERNAL_ERROR;
     }
 
-    err = wc_HmacFinal(&Hash->Mac, Output);
-    if (!err) {
+    err = wc_HmacFinal((struct Hmac *)Hash, Output);
+    if (err) {
         QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
                        wc_GetErrorString(err));
         return QUIC_STATUS_INTERNAL_ERROR;
@@ -143,13 +174,13 @@ CxPlatHashCompute(CXPLAT_HASH * Hash,
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS
-CxPlatDecrypt(CXPLAT_KEY * Key,
-              const uint8_t * const Iv,
-              uint16_t AuthDataLength,
-              const uint8_t * const AuthData,
-              uint16_t BufferLength,
-              uint8_t * Buffer)
+
+QUIC_STATUS CxPlatDecrypt(CXPLAT_KEY * Key,
+                          const uint8_t * const Iv,
+                          uint16_t AuthDataLength,
+                          const uint8_t * const AuthData,
+                          uint16_t BufferLength,
+                          uint8_t * Buffer)
 {
     UNREFERENCED_PARAMETER(Key);
     UNREFERENCED_PARAMETER(Iv);
@@ -164,11 +195,11 @@ CxPlatDecrypt(CXPLAT_KEY * Key,
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS
-CxPlatHpComputeMask(CXPLAT_HP_KEY * Key,
-                    uint8_t BatchSize,
-                    const uint8_t * const Cipher,
-                    uint8_t * Mask)
+
+QUIC_STATUS CxPlatHpComputeMask(CXPLAT_HP_KEY * Key,
+                                uint8_t BatchSize,
+                                const uint8_t * const Cipher,
+                                uint8_t * Mask)
 {
     UNREFERENCED_PARAMETER(Key);
     UNREFERENCED_PARAMETER(BatchSize);
@@ -179,13 +210,13 @@ CxPlatHpComputeMask(CXPLAT_HP_KEY * Key,
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS
-CxPlatEncrypt(CXPLAT_KEY * Key,
-              const uint8_t * const Iv,
-              uint16_t AuthDataLength,
-              const uint8_t * const AuthData,
-              uint16_t BufferLength,
-              uint8_t * Buffer)
+
+QUIC_STATUS CxPlatEncrypt(CXPLAT_KEY * Key,
+                          const uint8_t * const Iv,
+                          uint16_t AuthDataLength,
+                          const uint8_t * const AuthData,
+                          uint16_t BufferLength,
+                          uint8_t * Buffer)
 {
     UNREFERENCED_PARAMETER(Key);
     UNREFERENCED_PARAMETER(Iv);
@@ -199,20 +230,18 @@ CxPlatEncrypt(CXPLAT_KEY * Key,
     return QUIC_STATUS_SUCCESS;
 }
 
+
 void CxPlatHpKeyFree(CXPLAT_HP_KEY * Key)
 {
-    UNREFERENCED_PARAMETER(Key);
+    free(Key);
 }
 
-QUIC_STATUS
-CxPlatHpKeyCreate(CXPLAT_AEAD_TYPE AeadType,
-                  const uint8_t * const RawKey,
-                  CXPLAT_HP_KEY ** NewKey)
-{
-    UNREFERENCED_PARAMETER(AeadType);
-    UNREFERENCED_PARAMETER(RawKey);
-    UNREFERENCED_PARAMETER(NewKey);
 
-    puts("TODO CxPlatHpKeyCreate");
-    return QUIC_STATUS_SUCCESS;
+QUIC_STATUS CxPlatHpKeyCreate(CXPLAT_AEAD_TYPE AeadType,
+                              const uint8_t * const RawKey,
+                              CXPLAT_HP_KEY ** NewKey)
+{
+    // puts("CxPlatHpKeyCreate");
+
+    return CxPlatKeyCreate(AeadType, RawKey, (CXPLAT_KEY **)NewKey);
 }

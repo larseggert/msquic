@@ -281,7 +281,7 @@ QuicVersionNegotiationExtEncodeVersionInfo(
         if (VersionInfo == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%"PRIu32" bytes)",
                 "Server Version Info",
                 VILen);
             return NULL;
@@ -332,7 +332,7 @@ QuicVersionNegotiationExtEncodeVersionInfo(
         if (VersionInfo == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%"PRIu32" bytes)",
                 "Client Version Info",
                 VILen);
             return NULL;

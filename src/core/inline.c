@@ -52,7 +52,7 @@ QuicCidNewRandomSource(
     );
 
 QUIC_CID_LIST_ENTRY*
-QuicCidNewRandomDestination(
+QuicCidNewRandomDestination(void
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

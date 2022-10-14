@@ -411,7 +411,7 @@ CxPlatSetAllocFailDenominator(
     );
 
 int32_t
-CxPlatGetAllocFailDenominator(
+CxPlatGetAllocFailDenominator(void
     );
 #endif
 

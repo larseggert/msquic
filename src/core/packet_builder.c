@@ -268,7 +268,7 @@ QuicPacketBuilderPrepare(
             if (Builder->SendData == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Allocation of '%s' failed. (%zu bytes)",
                     "packet send context",
                     0);
                 goto Error;
@@ -292,7 +292,7 @@ QuicPacketBuilderPrepare(
         if (Builder->Datagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%zu bytes)",
                 "packet datagram",
                 NewDatagramLength);
             if (SendDataAllocated) {
@@ -892,7 +892,7 @@ QuicPacketBuilderFinalize(
             if (QUIC_FAILED(Status)) {
                 QuicTraceEvent(
                     ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
+                    "[conn][%p] ERROR, %"PRIu32", %s.",
                     Connection,
                     Status,
                     "Send-triggered key update");

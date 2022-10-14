@@ -75,7 +75,7 @@ QuicConnLogCubic(
 
     QuicTraceEvent(
         ConnCubic,
-        "[conn][%p] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u",
+        "[conn][%p] CUBIC: SlowStartThreshold=%"PRIu32" K=%"PRIu32" WindowMax=%"PRIu32" WindowLastMax=%"PRIu32,
         Connection,
         Cubic->SlowStartThreshold,
         Cubic->KCubic,
@@ -634,7 +634,7 @@ CubicCongestionControlLogOutFlowStatus(
 
     QuicTraceEvent(
         ConnOutFlowStats,
-        "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u",
+        "[conn][%p] OUT: BytesSent=%llu InFlight=%"PRIu32" InFlightMax=%"PRIu32" CWnd=%"PRIu32" SSThresh=%"PRIu32" ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%"PRIu32,
         Connection,
         Connection->Stats.Send.TotalBytes,
         Cubic->BytesInFlight,

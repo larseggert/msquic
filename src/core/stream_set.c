@@ -104,7 +104,7 @@ QuicStreamSetInsertStream(
         if (!CxPlatHashtableInitialize(&StreamSet->StreamTable, CXPLAT_HASH_MIN_SIZE)) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%zu bytes)",
                 "streamset hash table",
                 0);
             return FALSE;
@@ -688,7 +688,7 @@ QuicStreamSetGetStreamForPeer(
                 QuicTraceLogStreamWarning(
                     NotAccepted,
                     Stream,
-                    "New stream wasn't accepted, 0x%x",
+                    "New stream wasn't accepted, 0x%"PRIx32,
                     Status);
                 QuicStreamClose(Stream);
                 Stream = NULL;
