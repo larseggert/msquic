@@ -76,7 +76,7 @@ Abstract:
 #endif
 #endif
 
-#if 0
+
 static uint8_t * ReadPkcs12(const char * Name, uint32_t * Length)
 {
     size_t FileSize = 0;
@@ -119,7 +119,7 @@ static uint8_t * ReadPkcs12(const char * Name, uint32_t * Length)
     }
     return Buffer;
 }
-#endif
+
 
 //
 // Generates a self signed cert using low level OpenSSL APIs.
@@ -382,7 +382,6 @@ Exit:
     return Status;
 }
 
-#if 0
 static char * QuicTestServerCertFilename = (char *)"localhost_cert.pem";
 static char * QuicTestServerPrivateKeyFilename = (char *)"localhost_key.pem";
 static char * QuicTestServerPrivateKeyProtectedFilename =
@@ -396,10 +395,12 @@ static char * QuicTestClientPkcs12Filename = (char *)"client_certkey.p12";
 
 #define TEST_PASS "placeholder"
 
+#if 0
 #ifndef MAX_PATH
 #define MAX_PATH 50
 #endif
 #endif
+
 
 typedef struct CXPLAT_CREDENTIAL_CONFIG_INTERNAL {
     QUIC_CREDENTIAL_CONFIG;
@@ -410,13 +411,13 @@ typedef struct CXPLAT_CREDENTIAL_CONFIG_INTERNAL {
 } CXPLAT_CREDENTIAL_CONFIG_INTERNAL;
 
 #define TEMP_DIR_TEMPLATE "/tmp/quictest.XXXXXX"
-#if 0
+
 #define TEMP_DIR_SEARCH "/tmp/quictest.*"
 
-_Success_(return) BOOLEAN FindOrCreateTempFiles(const char * const CertFileName,
-                                                const char * const KeyFileName,
-                                                char * CertFilePath,
-                                                char * KeyFilePath)
+BOOLEAN FindOrCreateTempFiles(const char * const CertFileName,
+                              const char * const KeyFileName,
+                              char * CertFilePath,
+                              char * KeyFilePath)
 {
 #ifdef _WIN32
     char TempPath[MAX_PATH] = {0};
@@ -532,7 +533,7 @@ _Success_(return) BOOLEAN FindOrCreateTempFiles(const char * const CertFileName,
 
     return TRUE;
 }
-#endif
+
 
 QUIC_CREDENTIAL_CONFIG *
 CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_TYPE Type,
@@ -599,39 +600,23 @@ Error:
     return NULL;
 }
 
-#if 0
-_IRQL_requires_max_(PASSIVE_LEVEL) _Success_(return == TRUE) BOOLEAN
-    CxPlatGetTestCertificate(
-        _In_ CXPLAT_TEST_CERT_TYPE Type,
-        _In_ CXPLAT_SELF_SIGN_CERT_TYPE StoreType,
-        _In_ uint32_t CredType,
-        _Out_ QUIC_CREDENTIAL_CONFIG * Params,
-        _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, _Out_)
-            _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
-                   _Reserved_) QUIC_CERTIFICATE_HASH * CertHash,
-        _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Out_)
-            _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE,
-                   _Reserved_) QUIC_CERTIFICATE_HASH_STORE * CertHashStore,
-        _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE, _Out_)
-            _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE,
-                   _Reserved_) QUIC_CERTIFICATE_FILE * CertFile,
-        _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED,
-               _Out_)
-            _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED,
-                   _Reserved_)
-                QUIC_CERTIFICATE_FILE_PROTECTED * CertFileProtected,
-        _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12, _Out_)
-            _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12,
-                   _Reserved_) QUIC_CERTIFICATE_PKCS12 * Pkcs12,
-        _When_(CredType == QUIC_CREDENTIAL_TYPE_NONE, _Out_z_bytecap_(100))
-            _When_(CredType != QUIC_CREDENTIAL_TYPE_NONE,
-                   _Reserved_) char Principal[100])
+BOOLEAN
+CxPlatGetTestCertificate(CXPLAT_TEST_CERT_TYPE Type,
+                         CXPLAT_SELF_SIGN_CERT_TYPE StoreType,
+                         uint32_t CredType,
+                         QUIC_CREDENTIAL_CONFIG * Params,
+                         QUIC_CERTIFICATE_HASH * CertHash,
+                         QUIC_CERTIFICATE_HASH_STORE * CertHashStore,
+                         QUIC_CERTIFICATE_FILE * CertFile,
+                         QUIC_CERTIFICATE_FILE_PROTECTED * CertFileProtected,
+                         QUIC_CERTIFICATE_PKCS12 * Pkcs12,
+                         char Principal[100])
 {
     UNREFERENCED_PARAMETER(StoreType);
-    UNREFERENCED_PARAMETER(Params);
     UNREFERENCED_PARAMETER(CertHash);
     UNREFERENCED_PARAMETER(CertHashStore);
     UNREFERENCED_PARAMETER(Principal);
+
     BOOLEAN Result = FALSE;
     if ((Type == CXPLAT_TEST_CERT_SELF_SIGNED_SERVER ||
          Type == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT) &&
@@ -743,7 +728,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Success_(return == TRUE) BOOLEAN
     }
     return Result;
 }
-#endif
 
 
 void CxPlatFreeTestCert(QUIC_CREDENTIAL_CONFIG * Params)
