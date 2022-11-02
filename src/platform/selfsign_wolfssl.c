@@ -81,8 +81,8 @@ static uint8_t * ReadPkcs12(const char * Name, uint32_t * Length)
 {
     size_t FileSize = 0;
     FILE * Handle = fopen(Name, "rb");
-    if (Handle == NULL) {
-        return NULL;
+    if (Handle == 0) {
+        return 0;
     }
 #ifdef _WIN32
     struct _stat Stat;
@@ -97,13 +97,13 @@ static uint8_t * ReadPkcs12(const char * Name, uint32_t * Length)
 #endif
     if (FileSize == 0) {
         fclose(Handle);
-        return NULL;
+        return 0;
     }
 
     uint8_t * Buffer = (uint8_t *)malloc(FileSize);
-    if (Buffer == NULL) {
+    if (Buffer == 0) {
         fclose(Handle);
-        return NULL;
+        return 0;
     }
 
     size_t ReadLength = 0;
@@ -115,272 +115,161 @@ static uint8_t * ReadPkcs12(const char * Name, uint32_t * Length)
     fclose(Handle);
     if (*Length != FileSize) {
         free(Buffer);
-        return NULL;
+        return 0;
     }
     return Buffer;
 }
 
 
-//
-// Generates a self signed cert using low level OpenSSL APIs.
-//
+// Generates a self signed cert using WolfSSL
 QUIC_STATUS CxPlatTlsGenerateSelfSignedCert(char * CertFileName,
                                             char * PrivateKeyFileName,
                                             char * SNI,
                                             char * Password,
                                             BOOLEAN OutputPkcs12)
 {
-    UNREFERENCED_PARAMETER(CertFileName);
-    UNREFERENCED_PARAMETER(PrivateKeyFileName);
-    UNREFERENCED_PARAMETER(Password);
+    printf("CxPlatTlsGenerateSelfSignedCert %s %s %s %s\n", CertFileName,
+           PrivateKeyFileName, SNI, Password);
+
+    // UNREFERENCED_PARAMETER(CertFileName);
+    // UNREFERENCED_PARAMETER(PrivateKeyFileName);
+    // UNREFERENCED_PARAMETER(Password);
     UNREFERENCED_PARAMETER(OutputPkcs12);
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    FILE * Fd = 0;
 
-#if 0
-    int Ret = 0;
-    WOLFSSL_EVP_PKEY * PKey = NULL;
-    WOLFSSL_EVP_PKEY_CTX * EcKeyCtx = NULL;
-    WOLFSSL_X509 * X509 = NULL;
-    WOLFSSL_X509_NAME * Name = NULL;
-    WC_PKCS12 * Pkcs12 = NULL;
-#endif
-    FILE * Fd = NULL;
-#if 0
-    PKey = wolfSSL_EVP_PKEY_new();
-    if (PKey == NULL) {
-        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
-                       "EVP_PKEY_new failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    EcKeyCtx = wolfSSL_EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL);
-    if (EcKeyCtx == NULL) {
-        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
-                       "EVP_PKEY_CTX_new_id failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    Ret = EVP_PKEY_keygen_init(EcKeyCtx);
-    if (Ret != 1) {
-        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
-                       "EVP_PKEY_keygen_init failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-#endif
-
+    RNG rng;
+    wc_InitRng(&rng);
 
     RsaKey key;
-    RNG rng;
-    int ret;
-
-    wc_InitRng(&rng);
     wc_InitRsaKey(&key, 0);
 
-    ret = wc_MakeRsaKey(&key, 1024, 65537, &rng);
-    if (ret != 0)
-        /* ret contains error */;
-
-#if 0
-    Ret = EVP_PKEY_keygen(EcKeyCtx, &PKey);
-    if (Ret != 1) {
+    int ret = wc_MakeRsaKey(&key, 1024, 65537, &rng);
+    if (ret != 0) {
         QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
-                       "EVP_PKEY_keygen failed");
+                       "wc_MakeRsaKey failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
-    X509 = wolfSSL_X509_new();
-    if (X509 == NULL) {
-        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "X509_new failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    Ret = ASN1_INTEGER_set(wolfSSL_X509_get_serialNumber(X509), 1);
-    if (Ret != 1) {
+    byte der[4096];
+    ret = wc_RsaKeyToDer(&key, der, sizeof(der));
+    if (ret < 0) {
         QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
-                       "ASN1_INTEGER_set failed");
+                       "wc_RsaKeyToDer failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
-    X509_gmtime_adj(X509_get_notBefore(X509), 0);
-    X509_gmtime_adj(X509_get_notAfter(X509), 31536000L);
+    byte key_pem[4096];
+    const int len_key_pem =
+        wc_DerToPem(der, ret, key_pem, sizeof(key_pem),
+                    OutputPkcs12 ? PKCS8_PRIVATEKEY_TYPE : PRIVATEKEY_TYPE);
+    if (len_key_pem < 0) {
+        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "wc_DerToPem failed");
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
+    }
 
-    X509_set_pubkey(X509, PKey);
+    Cert cert;
+    wc_InitCert(&cert);
+    strncpy(cert.subject.commonName, SNI, CTC_NAME_SIZE);
 
-    Name = X509_get_subject_name(X509);
-
-    Ret = X509_NAME_add_entry_by_txt(Name, "C", MBSTRING_ASC,
-                                     (unsigned char *)"CA", -1, -1, 0);
-#endif
-
-    Cert myCert;
-    wc_InitCert(&myCert);
-
-    strncpy(myCert.subject.country, "CA", CTC_NAME_SIZE);
-
-#if 0
-    if (Ret != 1) {
+    ret = wc_MakeSelfCert(&cert, der, sizeof(der), &key, &rng);
+    if (ret < 0) {
         QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
-                       "X509_NAME_add_entry_by_txt failed");
+                       "wc_MakeSelfCert failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
-    Ret = X509_NAME_add_entry_by_txt(Name, "O", MBSTRING_ASC,
-                                     (unsigned char *)"Microsoft", -1, -1, 0);
-#endif
-    strncpy(myCert.subject.org, "Microsoft", CTC_NAME_SIZE);
-
-#if 0
-    if (Ret != 1) {
-        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
-                       "X509_NAME_add_entry_by_txt failed");
+    byte cert_pem[4096];
+    const int len_cert_pem =
+        wc_DerToPem(der, ret, cert_pem, sizeof(cert_pem), CERT_TYPE);
+    if (len_cert_pem < 0) {
+        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "wc_DerToPem failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
-    Ret = X509_NAME_add_entry_by_txt(Name, "CN", MBSTRING_ASC,
-                                     (unsigned char *)SNI, -1, -1, 0);
-#endif
-    strncpy(myCert.subject.commonName, SNI, CTC_NAME_SIZE);
-
-#if 0
-    if (Ret != 1) {
-        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
-                       "X509_NAME_add_entry_by_txt failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    Ret = X509_set_issuer_name(X509, Name);
-    if (Ret != 1) {
-        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
-                       "X509_set_issuer_name failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    Ret = X509_sign(X509, PKey, EVP_sha256());
-    if (Ret <= 0) {
-        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "X509_sign failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-#endif
-
-    byte derCert[4096];
-
-    int certSz = wc_MakeSelfCert(&myCert, derCert, sizeof(derCert), &key, &rng);
-    if (certSz < 0) {
-    }
-
-#if 0
     if (!OutputPkcs12) {
 
         Fd = fopen(PrivateKeyFileName, "wb");
-        if (Fd == NULL) {
+        if (Fd == 0) {
             QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "fopen failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
 
-        Ret = PEM_write_PrivateKey(Fd, PKey,
-                                   Password == NULL ? NULL : EVP_aes_128_ecb(),
-                                   NULL, 0, NULL, Password);
-        if (Ret != 1) {
-            QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
-                           "PEM_write_PrivateKey failed");
+        // this writes w/o password
+        ret = fwrite(key_pem, len_key_pem, 1, Fd);
+        if (ret != 1) {
+            QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "fwrite failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
 
         fclose(Fd);
-        Fd = NULL;
+        Fd = 0;
 
         Fd = fopen(CertFileName, "wb");
-        if (Fd == NULL) {
+        if (Fd == 0) {
             QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "fopen failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
 
-        Ret = PEM_write_X509(Fd, X509);
-        if (Ret != 1) {
-            QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
-                           "PEM_write_X509 failed");
+        ret = fwrite(cert_pem, len_cert_pem, 1, Fd);
+        if (ret != 1) {
+            QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "fwrite failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
 
         fclose(Fd);
-        Fd = NULL;
+        Fd = 0;
 
     } else {
+        puts("TODO OutputPkcs12");
+        //     Pkcs12 = wolfSSL_PKCS12_create(Password, "MsQuicTest", PKey,
+        //     X509, 0,
+        //                                    Password == 0 ? -1 : 0,
+        //                                    Password == 0 ? -1 : 0, 0, 0, 0);
 
-        Pkcs12 = wolfSSL_PKCS12_create(Password, "MsQuicTest", PKey, X509, NULL,
-                                       Password == NULL ? -1 : 0,
-                                       Password == NULL ? -1 : 0, 0, 0, 0);
+        //     if (Pkcs12 == 0) {
+        //         QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
+        //                        "PKCS12_create failed");
+        //         Status = QUIC_STATUS_TLS_ERROR;
+        //         goto Exit;
+        //     }
 
-        if (Pkcs12 == NULL) {
-            QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
-                           "PKCS12_create failed");
-            Status = QUIC_STATUS_TLS_ERROR;
-            goto Exit;
-        }
+        //     Fd = fopen(CertFileName, "wb");
+        //     if (Fd == 0) {
+        //         QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "fopen
+        //         failed"); Status = QUIC_STATUS_TLS_ERROR; goto Exit;
+        //     }
 
-        Fd = fopen(CertFileName, "wb");
-        if (Fd == NULL) {
-            QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "fopen failed");
-            Status = QUIC_STATUS_TLS_ERROR;
-            goto Exit;
-        }
-
-        Ret = i2d_PKCS12_fp(Fd, Pkcs12);
-        if (Ret != 1) {
-            QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
-                           "i2d_PKCS12_fp failed");
-            Status = QUIC_STATUS_TLS_ERROR;
-            goto Exit;
-        }
-        fclose(Fd);
-        Fd = NULL;
+        //     Ret = i2d_PKCS12_fp(Fd, Pkcs12);
+        //     if (Ret != 1) {
+        //         QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
+        //                        "i2d_PKCS12_fp failed");
+        //         Status = QUIC_STATUS_TLS_ERROR;
+        //         goto Exit;
+        //     }
+        //     fclose(Fd);
+        //     Fd = 0;
     }
-#endif
 
-#if 0
 Exit:
-    if (PKey != NULL) {
-        EVP_PKEY_free(PKey);
-        PKey = NULL;
-    }
-
-    if (EcKeyCtx != NULL) {
-        EVP_PKEY_CTX_free(EcKeyCtx);
-        EcKeyCtx = NULL;
-    }
-
-    if (X509 != NULL) {
-        X509_free(X509);
-        X509 = NULL;
-    }
-
-    if (Pkcs12 != NULL) {
-        wc_PKCS12_free(Pkcs12);
-    }
-#endif
-    if (Fd != NULL) {
+    if (Fd != 0) {
         fclose(Fd);
-        Fd = NULL;
+        Fd = 0;
     }
 
     return Status;
 }
+
 
 static char * QuicTestServerCertFilename = (char *)"localhost_cert.pem";
 static char * QuicTestServerPrivateKeyFilename = (char *)"localhost_key.pem";
@@ -410,6 +299,7 @@ typedef struct CXPLAT_CREDENTIAL_CONFIG_INTERNAL {
 
 } CXPLAT_CREDENTIAL_CONFIG_INTERNAL;
 
+
 #define TEMP_DIR_TEMPLATE "/tmp/quictest.XXXXXX"
 
 #define TEMP_DIR_SEARCH "/tmp/quictest.*"
@@ -419,6 +309,9 @@ BOOLEAN FindOrCreateTempFiles(const char * const CertFileName,
                               char * CertFilePath,
                               char * KeyFilePath)
 {
+    printf("FindOrCreateTempFiles 1%s 2%s 3%s 4%s\n", CertFileName, KeyFileName,
+           CertFilePath, KeyFilePath);
+
 #ifdef _WIN32
     char TempPath[MAX_PATH] = {0};
     char TempCertPath[MAX_PATH] = {0};
@@ -458,7 +351,7 @@ BOOLEAN FindOrCreateTempFiles(const char * const CertFileName,
         FindHandle = INVALID_HANDLE_VALUE;
     }
 
-    if (KeyFileName != NULL && KeyFilePath != NULL) {
+    if (KeyFileName != 0 && KeyFilePath != 0) {
         CxPlatCopyMemory(TempKeyPath, TempPath, PathLength);
         CxPlatCopyMemory(TempKeyPath + PathLength, KeyFileName,
                          strlen(KeyFileName));
@@ -491,11 +384,10 @@ BOOLEAN FindOrCreateTempFiles(const char * const CertFileName,
 #else
 
     char TempPath[MAX_PATH] = {0};
-    char * TempDir = NULL;
+    char * TempDir = 0;
 
     glob_t GlobData = {0};
-    if (glob(TEMP_DIR_SEARCH, 0, NULL, &GlobData) != 0 ||
-        GlobData.gl_pathc == 0) {
+    if (glob(TEMP_DIR_SEARCH, 0, 0, &GlobData) != 0 || GlobData.gl_pathc == 0) {
         globfree(&GlobData);
         //
         // Temp dir not found, create it
@@ -504,7 +396,7 @@ BOOLEAN FindOrCreateTempFiles(const char * const CertFileName,
                          sizeof(TEMP_DIR_TEMPLATE));
 
         TempDir = mkdtemp(TempPath);
-        if (TempDir == NULL) {
+        if (TempDir == 0) {
             QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "mkdtemp failed");
             return FALSE;
         }
@@ -523,7 +415,7 @@ BOOLEAN FindOrCreateTempFiles(const char * const CertFileName,
     CxPlatCopyMemory(CertFilePath + strlen(TempDir) + 1, CertFileName,
                      strlen(CertFileName) + 1);
 
-    if (KeyFilePath != NULL && KeyFileName != NULL) {
+    if (KeyFilePath != 0 && KeyFileName != 0) {
         CxPlatCopyMemory(KeyFilePath, TempDir, strlen(TempDir));
         CxPlatCopyMemory(KeyFilePath + strlen(TempDir), "/", 1);
         CxPlatCopyMemory(KeyFilePath + strlen(TempDir) + 1, KeyFileName,
@@ -539,11 +431,12 @@ QUIC_CREDENTIAL_CONFIG *
 CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_TYPE Type,
                         BOOLEAN ClientCertificate)
 {
+    puts("CxPlatGetSelfSignedCert");
+
     UNREFERENCED_PARAMETER(Type);
-    UNREFERENCED_PARAMETER(ClientCertificate);
-#if 0
-    const char * CertFileName = NULL;
-    const char * KeyFileName = NULL;
+
+    const char * CertFileName = 0;
+    const char * KeyFileName = 0;
 
     if (ClientCertificate) {
 #ifdef _WIN32
@@ -565,8 +458,8 @@ CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_TYPE Type,
 
     CXPLAT_CREDENTIAL_CONFIG_INTERNAL * Params = malloc(
         sizeof(CXPLAT_CREDENTIAL_CONFIG_INTERNAL) + sizeof(TEMP_DIR_TEMPLATE));
-    if (Params == NULL) {
-        return NULL;
+    if (Params == 0) {
+        return 0;
     }
 
     CxPlatZeroMemory(Params, sizeof(*Params));
@@ -582,8 +475,8 @@ CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_TYPE Type,
 
     if (QUIC_FAILED(CxPlatTlsGenerateSelfSignedCert(
             Params->CertFilepath, Params->PrivateKeyFilepath,
-            ClientCertificate ? (char *)"MsQuicClient" : (char *)"localhost",
-            NULL, FALSE))) {
+            ClientCertificate ? (char *)"MsQuicClient" : (char *)"localhost", 0,
+            FALSE))) {
         goto Error;
     }
 
@@ -596,9 +489,9 @@ Error:
     DeleteFileA(Params->PrivateKeyFilepath);
 #endif
     free(Params);
-#endif
-    return NULL;
+    return 0;
 }
+
 
 BOOLEAN
 CxPlatGetTestCertificate(CXPLAT_TEST_CERT_TYPE Type,
@@ -612,6 +505,8 @@ CxPlatGetTestCertificate(CXPLAT_TEST_CERT_TYPE Type,
                          QUIC_CERTIFICATE_PKCS12 * Pkcs12,
                          char Principal[100])
 {
+    puts("CxPlatGetTestCertificate");
+
     UNREFERENCED_PARAMETER(StoreType);
     UNREFERENCED_PARAMETER(CertHash);
     UNREFERENCED_PARAMETER(CertHashStore);
@@ -624,10 +519,10 @@ CxPlatGetTestCertificate(CXPLAT_TEST_CERT_TYPE Type,
          CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED ||
          CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12)) {
 
-        const char * CertFileName = NULL;
-        const char * KeyFileName = NULL;
-        char * CertFilePath = NULL;
-        char * KeyFilePath = NULL;
+        const char * CertFileName = 0;
+        const char * KeyFileName = 0;
+        char * CertFilePath = 0;
+        char * KeyFilePath = 0;
         BOOLEAN IsClient = Type == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT;
 
         if (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
@@ -640,12 +535,12 @@ CxPlatGetTestCertificate(CXPLAT_TEST_CERT_TYPE Type,
             }
 
             CertFilePath = malloc(MAX_PATH * 2);
-            if (CertFilePath == NULL) {
+            if (CertFilePath == 0) {
                 return FALSE;
             }
             KeyFilePath = CertFilePath + MAX_PATH;
 
-            _Analysis_assume_(CertFile != NULL);
+            _Analysis_assume_(CertFile != 0);
             CertFile->CertificateFile = CertFilePath;
             CertFile->PrivateKeyFile = KeyFilePath;
         } else if (CredType ==
@@ -659,12 +554,12 @@ CxPlatGetTestCertificate(CXPLAT_TEST_CERT_TYPE Type,
             }
 
             CertFilePath = malloc((MAX_PATH * 2) + sizeof(TEST_PASS));
-            if (CertFilePath == NULL) {
+            if (CertFilePath == 0) {
                 return FALSE;
             }
             KeyFilePath = CertFilePath + MAX_PATH;
 
-            _Analysis_assume_(CertFileProtected != NULL);
+            _Analysis_assume_(CertFileProtected != 0);
             CertFileProtected->CertificateFile = CertFilePath;
             CertFileProtected->PrivateKeyFile = KeyFilePath;
             CertFileProtected->PrivateKeyPassword = KeyFilePath + MAX_PATH;
@@ -677,7 +572,7 @@ CxPlatGetTestCertificate(CXPLAT_TEST_CERT_TYPE Type,
                 CertFileName = QuicTestServerPkcs12Filename;
             }
             CertFilePath = malloc(MAX_PATH);
-            if (CertFilePath == NULL) {
+            if (CertFilePath == 0) {
                 return FALSE;
             }
         }
@@ -691,7 +586,7 @@ CxPlatGetTestCertificate(CXPLAT_TEST_CERT_TYPE Type,
                 CertFilePath, KeyFilePath,
                 Type == CXPLAT_TEST_CERT_SELF_SIGNED_SERVER ? "localhost"
                                                             : "MsQuicClient",
-                CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE ? NULL
+                CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE ? 0
                                                                   : TEST_PASS,
                 CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12))) {
             goto Error;
@@ -699,30 +594,29 @@ CxPlatGetTestCertificate(CXPLAT_TEST_CERT_TYPE Type,
 
         if (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
             Params->CertificateFile = CertFile;
-            CertFilePath = NULL;
+            CertFilePath = 0;
         } else if (CredType ==
                    QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
             Params->CertificateFileProtected = CertFileProtected;
-            CertFilePath = NULL;
+            CertFilePath = 0;
         } else {
-            _Analysis_assume_(Pkcs12 != NULL);
+            _Analysis_assume_(Pkcs12 != 0);
             Params->CertificatePkcs12 = Pkcs12;
             Pkcs12->Asn1Blob =
                 ReadPkcs12(CertFilePath, &Pkcs12->Asn1BlobLength);
-            if (Pkcs12->Asn1Blob == NULL) {
+            if (Pkcs12->Asn1Blob == 0) {
                 goto Error;
             }
-            //
+
             // Repurpose CertFilePath to store the password.
-            //
             Pkcs12->PrivateKeyPassword = CertFilePath;
             CxPlatCopyMemory(CertFilePath, TEST_PASS, sizeof(TEST_PASS));
-            CertFilePath = NULL;
+            CertFilePath = 0;
         }
         Params->Type = CredType;
         Result = TRUE;
     Error:
-        if (CertFilePath != NULL) {
+        if (CertFilePath != 0) {
             free(CertFilePath);
         }
     }
@@ -742,6 +636,7 @@ void CxPlatFreeTestCert(QUIC_CREDENTIAL_CONFIG * Params)
         free((char *)Params->CertificatePkcs12->PrivateKeyPassword);
     }
 }
+
 
 void CxPlatFreeSelfSignedCert(const QUIC_CREDENTIAL_CONFIG * CredConfig)
 {

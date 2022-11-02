@@ -5,7 +5,7 @@
 
 Abstract:
 
-    Implements the TLS functions by calling OpenSSL.
+    Implements the TLS functions by calling WolfSSL.
 
 --*/
 
@@ -22,50 +22,17 @@ Abstract:
 #include <wolfssl/ssl.h> // must come before wolfssl/quic.h
 
 #include <wolfssl/quic.h>
+#include <wolfssl/wolfcrypt/pkcs12.h>
 
 #ifdef QUIC_CLOG
-#include "tls_openssl.c.clog.h"
+#include "tls_wolfssl.c.clog.h"
 #endif
 
 uint16_t CxPlatTlsTPHeaderSize = 0;
 
 #define SSL_AD_INTERNAL_ERROR 80
 #define EVP_MAX_IV_LENGTH 16
-#define STACK_OF(x) WOLFSSL_STACK
-
-/* Status codes passed to the decrypt session ticket callback. Some of these
- * are for internal use only and are never passed to the callback. */
-typedef int SSL_TICKET_STATUS;
-
-/* Support for ticket appdata */
-/* fatal error, malloc failure */
-#define SSL_TICKET_FATAL_ERR_MALLOC 0
-/* fatal error, either from parsing or decrypting the ticket */
-#define SSL_TICKET_FATAL_ERR_OTHER 1
-/* No ticket present */
-#define SSL_TICKET_NONE 2
-/* Empty ticket present */
-#define SSL_TICKET_EMPTY 3
-/* the ticket couldn't be decrypted */
-#define SSL_TICKET_NO_DECRYPT 4
-/* a ticket was successfully decrypted */
-#define SSL_TICKET_SUCCESS 5
-/* same as above but the ticket needs to be renewed */
-#define SSL_TICKET_SUCCESS_RENEW 6
-
-/* Return codes for the decrypt session ticket callback */
-typedef int SSL_TICKET_RETURN;
-
-/* An error occurred */
-#define SSL_TICKET_RETURN_ABORT 0
-/* Do not use the ticket, do not send a renewed ticket to the client */
-#define SSL_TICKET_RETURN_IGNORE 1
-/* Do not use the ticket, send a renewed ticket to the client */
-#define SSL_TICKET_RETURN_IGNORE_RENEW 2
-/* Use the ticket, do not send a renewed ticket to the client */
-#define SSL_TICKET_RETURN_USE 3
-/* Use the ticket, send a renewed ticket to the client */
-#define SSL_TICKET_RETURN_USE_RENEW 4
+// #define STACK_OF(x) WOLFSSL_STACK
 
 static WOLFSSL_EVP_CIPHER * CXPLAT_AES_256_CBC_ALG_HANDLE;
 
@@ -74,11 +41,7 @@ static WOLFSSL_EVP_CIPHER * CXPLAT_AES_256_CBC_ALG_HANDLE;
 #define X509_V_ERR_OUT_OF_MEM 17
 #define X509_R_NO_CERT_SET_FOR_US_TO_VERIFY 105
 
-const size_t WolfSslFilePrefixLength = sizeof("..\\..\\..\\..\\..\\..\\submodules");
-
-#if 0
 #define PFX_PASSWORD_LENGTH 33
-#endif
 
 
 // The QUIC sec config object. Created once per listener on server side and
@@ -129,7 +92,7 @@ typedef struct CXPLAT_TLS {
     uint16_t AlpnBufferLength;
     const uint8_t * AlpnBuffer;
 
-    // On client side stores a NULL terminated SNI.
+    // On client side stores a 0 terminated SNI.
     const char * SNI;
 
     // Ssl - A SSL object associated with the connection.
@@ -145,7 +108,7 @@ typedef struct CXPLAT_TLS {
     QUIC_CONNECTION * Connection;
 
     // Optional struct to log TLS traffic secrets.
-    // Only non-null when the connection is configured to log these.
+    // Only non-0 when the connection is configured to log these.
     QUIC_TLS_SECRETS * TlsSecrets;
 
 } CXPLAT_TLS;
@@ -169,9 +132,10 @@ typedef struct CXPLAT_TLS {
 #define X509_V_ERR_CERT_UNTRUSTED 27
 #define X509_V_ERR_CERT_REJECTED 28
 
-static QUIC_STATUS CxPlatTlsMapOpenSSLErrorToQuicStatus(int OpenSSLError)
+
+static QUIC_STATUS CxPlatTlsMapWolfSSLErrorToQuicStatus(int WolfSSLError)
 {
-    switch (OpenSSLError) {
+    switch (WolfSSLError) {
     case X509_V_ERR_CERT_REJECTED:
         return QUIC_STATUS_BAD_CERTIFICATE;
     case X509_V_ERR_CERT_REVOKED:
@@ -199,33 +163,33 @@ static int CxPlatTlsAlpnSelectCallback(WOLFSSL * Ssl,
     UNREFERENCED_PARAMETER(InLen);
     UNREFERENCED_PARAMETER(Arg);
 
-    CXPLAT_TLS * TlsContext = wolfSSL_get_ex_data(Ssl, 0);
+    CXPLAT_TLS * TlsContext = wolfSSL_get_app_data(Ssl);
 
-    //
     // QUIC already parsed and picked the ALPN to use and set it in the
     // NegotiatedAlpn variable.
-    //
-
-    CXPLAT_DBG_ASSERT(TlsContext->State->NegotiatedAlpn != NULL);
+    CXPLAT_DBG_ASSERT(TlsContext->State->NegotiatedAlpn != 0);
     *OutLen = TlsContext->State->NegotiatedAlpn[0];
     *Out = TlsContext->State->NegotiatedAlpn + 1;
 
     return SSL_TLSEXT_ERR_OK;
 }
 
-static int CxPlatTlsCertificateVerifyCallback(WOLFSSL_X509_STORE_CTX * x509_ctx,
-                                              void * param)
+
+static int CxPlatTlsCertificateVerifyCallback(int x,
+                                              WOLFSSL_X509_STORE_CTX * x509_ctx)
 {
-    UNREFERENCED_PARAMETER(param);
+    // puts("CxPlatTlsCertificateVerifyCallback");
+    UNREFERENCED_PARAMETER(x);
+
     int CertificateVerified = 0;
     int status = TRUE;
-    unsigned char * OpenSSLCertBuffer = NULL;
+    unsigned char * WolfSSLCertBuffer = 0;
     QUIC_BUFFER PortableCertificate = {0, 0};
     QUIC_BUFFER PortableChain = {0, 0};
     WOLFSSL_X509 * Cert = wolfSSL_X509_STORE_CTX_get0_cert(x509_ctx);
     WOLFSSL * Ssl = wolfSSL_X509_STORE_CTX_get_ex_data(
         x509_ctx, wolfSSL_get_ex_data_X509_STORE_CTX_idx());
-    CXPLAT_TLS * TlsContext = wolfSSL_get_ex_data(Ssl, 0);
+    CXPLAT_TLS * TlsContext = wolfSSL_get_app_data(Ssl);
     int ValidationResult = X509_V_OK;
     BOOLEAN IsDeferredValidationOrClientAuth =
         (TlsContext->SecConfig->Flags &
@@ -233,7 +197,7 @@ static int CxPlatTlsCertificateVerifyCallback(WOLFSSL_X509_STORE_CTX * x509_ctx,
          TlsContext->SecConfig->Flags &
              QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION);
 
-    TlsContext->PeerCertReceived = (Cert != NULL);
+    TlsContext->PeerCertReceived = (Cert != 0);
 
     if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT ||
          IsDeferredValidationOrClientAuth) &&
@@ -241,7 +205,7 @@ static int CxPlatTlsCertificateVerifyCallback(WOLFSSL_X509_STORE_CTX * x509_ctx,
           QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
         if (!(TlsContext->SecConfig->Flags &
               QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION)) {
-            if (Cert == NULL) {
+            if (Cert == 0) {
                 QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.",
                                TlsContext->Connection, "No certificate passed");
                 wolfSSL_X509_STORE_CTX_set_error(
@@ -249,22 +213,22 @@ static int CxPlatTlsCertificateVerifyCallback(WOLFSSL_X509_STORE_CTX * x509_ctx,
                 return FALSE;
             }
 
-            int OpenSSLCertLength = wolfSSL_i2d_X509(Cert, &OpenSSLCertBuffer);
-            if (OpenSSLCertLength <= 0) {
+            int WolfSSLCertLength = wolfSSL_i2d_X509(Cert, &WolfSSLCertBuffer);
+            if (WolfSSLCertLength <= 0) {
                 QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.",
                                "wolfSSL_i2d_X509 failed");
                 CertificateVerified = FALSE;
             } else {
                 CertificateVerified = CxPlatCertVerifyRawCertificate(
-                    OpenSSLCertBuffer, OpenSSLCertLength, TlsContext->SNI,
+                    WolfSSLCertBuffer, WolfSSLCertLength, TlsContext->SNI,
                     TlsContext->SecConfig->Flags,
                     IsDeferredValidationOrClientAuth
                         ? (uint32_t *)&ValidationResult
-                        : NULL);
+                        : 0);
             }
 
-            if (OpenSSLCertBuffer != NULL) {
-                /*wolfSSL_*/ free(OpenSSLCertBuffer);
+            if (WolfSSLCertBuffer != 0) {
+                free(WolfSSLCertBuffer);
             }
 
             if (!CertificateVerified) {
@@ -275,7 +239,7 @@ static int CxPlatTlsCertificateVerifyCallback(WOLFSSL_X509_STORE_CTX * x509_ctx,
             CertificateVerified = wolfSSL_X509_verify_cert(x509_ctx);
 
             if (IsDeferredValidationOrClientAuth && CertificateVerified <= 0) {
-                ValidationResult = (int)CxPlatTlsMapOpenSSLErrorToQuicStatus(
+                ValidationResult = (int)CxPlatTlsMapWolfSSLErrorToQuicStatus(
                     wolfSSL_X509_STORE_CTX_get_error(x509_ctx));
             }
         }
@@ -283,16 +247,14 @@ static int CxPlatTlsCertificateVerifyCallback(WOLFSSL_X509_STORE_CTX * x509_ctx,
                 QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
                (TlsContext->SecConfig->Flags &
                 QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES)) {
-        //
         // We need to get certificates provided by peer if we going to pass them
         // via Callbacks.CertificateReceived. We don't really care about
         // validation status but without calling wolfSSL_X509_verify_cert()
         // x509_ctx has no certificates attached to it and that impacts
         // validation of custom certificate chains.
         //
-        // OpenSSL 3 has X509_build_chain() to build just the chain.
+        // WolfSSL 3 has X509_build_chain() to build just the chain.
         // We may do something similar here for WolfSsl 1.1
-        //
         wolfSSL_X509_verify_cert(x509_ctx);
     }
 
@@ -321,8 +283,9 @@ static int CxPlatTlsCertificateVerifyCallback(WOLFSSL_X509_STORE_CTX * x509_ctx,
                 return FALSE;
             }
         }
-#if 0
         if (x509_ctx) {
+            puts("TODO x509_ctx");
+#if 0
             int ChainCount;
             STACK_OF(X509) * Chain =
                 wolfSSL_X509_STORE_CTX_get0_chain(x509_ctx);
@@ -343,8 +306,8 @@ static int CxPlatTlsCertificateVerifyCallback(WOLFSSL_X509_STORE_CTX * x509_ctx,
                                    "Failed to allocate PKCS7 context");
                 }
             }
-        }
 #endif
+        }
     }
 
     if ((TlsContext->SecConfig->Flags &
@@ -368,10 +331,10 @@ static int CxPlatTlsCertificateVerifyCallback(WOLFSSL_X509_STORE_CTX * x509_ctx,
     }
 
     if (PortableCertificate.Buffer) {
-        /*wolfSSL_*/ free(PortableCertificate.Buffer);
+        free(PortableCertificate.Buffer);
     }
     if (PortableChain.Buffer) {
-        /*wolfSSL_*/ free(PortableChain.Buffer);
+        free(PortableChain.Buffer);
     }
 
     return status;
@@ -398,15 +361,15 @@ void CxPlatTlsNegotiatedCiphers(CXPLAT_TLS * TlsContext,
 {
     switch (
         wolfSSL_CIPHER_get_id(wolfSSL_get_current_cipher(TlsContext->Ssl))) {
-    case 0x03001301U: // TLS_AES_128_GCM_SHA256
+    case 0x1301U: // TLS_AES_128_GCM_SHA256
         *AeadType = CXPLAT_AEAD_AES_128_GCM;
         *HashType = CXPLAT_HASH_SHA256;
         break;
-    case 0x03001302U: // TLS_AES_256_GCM_SHA384
+    case 0x1302U: // TLS_AES_256_GCM_SHA384
         *AeadType = CXPLAT_AEAD_AES_256_GCM;
         *HashType = CXPLAT_HASH_SHA384;
         break;
-    case 0x03001303U: // TLS_CHACHA20_POLY1305_SHA256
+    case 0x1303U: // TLS_CHACHA20_POLY1305_SHA256
         *AeadType = CXPLAT_AEAD_CHACHA20_POLY1305;
         *HashType = CXPLAT_HASH_SHA256;
         break;
@@ -422,7 +385,7 @@ int CxPlatTlsSetEncryptionSecretsCallback(WOLFSSL * Ssl,
                                           const uint8_t * WriteSecret,
                                           size_t SecretLen)
 {
-    CXPLAT_TLS * TlsContext = wolfSSL_get_ex_data(Ssl, 0);
+    CXPLAT_TLS * TlsContext = wolfSSL_get_app_data(Ssl);
     CXPLAT_TLS_PROCESS_STATE * TlsState = TlsContext->State;
     QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)Level;
     QUIC_STATUS Status;
@@ -436,7 +399,7 @@ int CxPlatTlsSetEncryptionSecretsCallback(WOLFSSL * Ssl,
 
     if (WriteSecret) {
         CxPlatCopyMemory(Secret.Secret, WriteSecret, SecretLen);
-        CXPLAT_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
+        CXPLAT_DBG_ASSERT(TlsState->WriteKeys[KeyType] == 0);
         Status = QuicPacketKeyDerive(KeyType, TlsContext->HkdfLabels, &Secret,
                                      "write secret", TRUE,
                                      &TlsState->WriteKeys[KeyType]);
@@ -456,7 +419,7 @@ int CxPlatTlsSetEncryptionSecretsCallback(WOLFSSL * Ssl,
 
     if (ReadSecret) {
         CxPlatCopyMemory(Secret.Secret, ReadSecret, SecretLen);
-        CXPLAT_DBG_ASSERT(TlsState->ReadKeys[KeyType] == NULL);
+        CXPLAT_DBG_ASSERT(TlsState->ReadKeys[KeyType] == 0);
         Status = QuicPacketKeyDerive(KeyType, TlsContext->HkdfLabels, &Secret,
                                      "read secret", TRUE,
                                      &TlsState->ReadKeys[KeyType]);
@@ -466,21 +429,19 @@ int CxPlatTlsSetEncryptionSecretsCallback(WOLFSSL * Ssl,
         }
 
         if (TlsContext->IsServer && KeyType == QUIC_PACKET_KEY_1_RTT) {
-            //
             // The 1-RTT read keys aren't actually allowed to be used until
             // the handshake completes.
-            //
         } else {
             TlsState->ReadKey = KeyType;
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
         }
     }
 
-    if (TlsContext->TlsSecrets != NULL) {
+    if (TlsContext->TlsSecrets != 0) {
         TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
         switch (KeyType) {
         case QUIC_PACKET_KEY_HANDSHAKE:
-            CXPLAT_FRE_ASSERT(ReadSecret != NULL && WriteSecret != NULL);
+            CXPLAT_FRE_ASSERT(ReadSecret != 0 && WriteSecret != 0);
             if (TlsContext->IsServer) {
                 memcpy(TlsContext->TlsSecrets->ClientHandshakeTrafficSecret,
                        ReadSecret, SecretLen);
@@ -496,7 +457,7 @@ int CxPlatTlsSetEncryptionSecretsCallback(WOLFSSL * Ssl,
             TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
             break;
         case QUIC_PACKET_KEY_1_RTT:
-            CXPLAT_FRE_ASSERT(ReadSecret != NULL && WriteSecret != NULL);
+            CXPLAT_FRE_ASSERT(ReadSecret != 0 && WriteSecret != 0);
             if (TlsContext->IsServer) {
                 memcpy(TlsContext->TlsSecrets->ClientTrafficSecret0, ReadSecret,
                        SecretLen);
@@ -510,14 +471,12 @@ int CxPlatTlsSetEncryptionSecretsCallback(WOLFSSL * Ssl,
             }
             TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
             TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
-            //
             // We're done with the TlsSecrets.
-            //
-            TlsContext->TlsSecrets = NULL;
+            TlsContext->TlsSecrets = 0;
             break;
         case QUIC_PACKET_KEY_0_RTT:
             if (!TlsContext->IsServer) {
-                CXPLAT_FRE_ASSERT(WriteSecret != NULL);
+                CXPLAT_FRE_ASSERT(WriteSecret != 0);
                 memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret,
                        WriteSecret, SecretLen);
                 TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
@@ -537,7 +496,7 @@ int CxPlatTlsAddHandshakeDataCallback(WOLFSSL * Ssl,
                                       const uint8_t * Data,
                                       size_t Length)
 {
-    CXPLAT_TLS * TlsContext = wolfSSL_get_ex_data(Ssl, 0);
+    CXPLAT_TLS * TlsContext = wolfSSL_get_app_data(Ssl);
     CXPLAT_TLS_PROCESS_STATE * TlsState = TlsContext->State;
 
     QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)Level;
@@ -545,7 +504,7 @@ int CxPlatTlsAddHandshakeDataCallback(WOLFSSL * Ssl,
         CXPLAT_DBG_ASSERT(CxPlatIsRandomMemoryFailureEnabled());
         return -1;
     }
-    CXPLAT_DBG_ASSERT(KeyType == 0 || TlsState->WriteKeys[KeyType] != NULL);
+    CXPLAT_DBG_ASSERT(KeyType == 0 || TlsState->WriteKeys[KeyType] != 0);
 
     QuicTraceLogConnVerbose(WolfSslAddHandshakeData, TlsContext->Connection,
                             "Sending %llu handshake bytes (Level = %u)",
@@ -559,10 +518,8 @@ int CxPlatTlsAddHandshakeDataCallback(WOLFSSL * Ssl,
     }
 
     if (Length + TlsState->BufferLength > (size_t)TlsState->BufferAllocLength) {
-        //
         // Double the allocated buffer length until there's enough room for
         // the new data.
-        //
         uint16_t NewBufferAllocLength = TlsState->BufferAllocLength;
         while (Length + TlsState->BufferLength > (size_t)NewBufferAllocLength) {
             NewBufferAllocLength <<= 1;
@@ -570,7 +527,7 @@ int CxPlatTlsAddHandshakeDataCallback(WOLFSSL * Ssl,
 
         uint8_t * NewBuffer =
             CXPLAT_ALLOC_NONPAGED(NewBufferAllocLength, QUIC_POOL_TLS_BUFFER);
-        if (NewBuffer == NULL) {
+        if (NewBuffer == 0) {
             QuicTraceEvent(AllocFailure,
                            "Allocation of '%s' failed. (%llu bytes)",
                            "New crypto buffer", NewBufferAllocLength);
@@ -627,9 +584,10 @@ int CxPlatTlsSendAlertCallback(WOLFSSL * Ssl,
                                enum wolfssl_encryption_level_t Level,
                                uint8_t Alert)
 {
+    puts("CxPlatTlsSendAlertCallback");
     UNREFERENCED_PARAMETER(Level);
 
-    CXPLAT_TLS * TlsContext = wolfSSL_get_ex_data(Ssl, 0);
+    CXPLAT_TLS * TlsContext = wolfSSL_get_app_data(Ssl);
 
     QuicTraceLogConnError(WolfSslAlert, TlsContext->Connection,
                           "Send alert = %u (Level = %u)", Alert,
@@ -645,7 +603,7 @@ int CxPlatTlsSendAlertCallback(WOLFSSL * Ssl,
 int CxPlatTlsClientHelloCallback(WOLFSSL * Ssl, int * Alert, void * arg)
 {
     UNREFERENCED_PARAMETER(arg);
-    CXPLAT_TLS * TlsContext = wolfSSL_get_ex_data(Ssl, 0);
+    CXPLAT_TLS * TlsContext = wolfSSL_get_app_data(Ssl);
 
     const uint8_t * TransportParams;
     size_t TransportParamLen;
@@ -667,41 +625,33 @@ int CxPlatTlsClientHelloCallback(WOLFSSL * Ssl, int * Alert, void * arg)
 int CxPlatTlsOnClientSessionTicketReceived(WOLFSSL * Ssl,
                                            WOLFSSL_SESSION * Session)
 {
-    UNREFERENCED_PARAMETER(Ssl);
+    // puts("CxPlatTlsOnClientSessionTicketReceived");
     UNREFERENCED_PARAMETER(Session);
-#if 0
-    CXPLAT_TLS * TlsContext = wolfSSL_get_ex_data(Ssl, 0);
-    BIO * Bio = BIO_new(BIO_s_mem());
-    if (Bio) {
-        if (PEM_write_bio_SSL_SESSION(Bio, Session) == 1) {
-            uint8_t * Data = NULL;
-            long Length = BIO_get_mem_data(Bio, &Data);
-            if (Length < UINT16_MAX) {
-                QuicTraceLogConnInfo(
-                    WolfSslOnRecvTicket, TlsContext->Connection,
-                    "Received session ticket, %u bytes", (uint32_t)Length);
-                TlsContext->SecConfig->Callbacks.ReceiveTicket(
-                    TlsContext->Connection, (uint32_t)Length, Data);
-            } else {
-                QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.",
-                               TlsContext->Connection, "Session data too big");
-            }
+
+    CXPLAT_TLS * TlsContext = wolfSSL_get_app_data(Ssl);
+
+    int ret = wolfSSL_i2d_SSL_SESSION(Session, 0);
+    if (ret > 0) {
+        uint8_t * Data = 0;
+        long Length = wolfSSL_i2d_SSL_SESSION(Session, &Data);
+        if (Length < UINT16_MAX) {
+            QuicTraceLogConnInfo(WolfSslOnRecvTicket, TlsContext->Connection,
+                                 "Received session ticket, %u bytes",
+                                 (uint32_t)Length);
+            TlsContext->SecConfig->Callbacks.ReceiveTicket(
+                TlsContext->Connection, (uint32_t)Length, Data);
         } else {
-            QuicTraceEvent(TlsErrorStatus, "[ tls][%p] ERROR, %u, %s.",
-                           TlsContext->Connection, wolfSSL_ERR_get_error(),
-                           "PEM_write_bio_SSL_SESSION failed");
+            QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.",
+                           TlsContext->Connection, "Session data too big");
         }
-        BIO_free(Bio);
     } else {
         QuicTraceEvent(TlsErrorStatus, "[ tls][%p] ERROR, %u, %s.",
                        TlsContext->Connection, wolfSSL_ERR_get_error(),
-                       "BIO_new_mem_buf failed");
+                       "wolfSSL_i2d_SSL_SESSION failed");
     }
-#endif
-    //
+
     // We always return a "fail" response so that the session gets freed
     // again because we haven't used the reference.
-    //
     return 0;
 }
 
@@ -714,11 +664,11 @@ int CxPlatTlsOnSessionTicketKeyNeeded(WOLFSSL * Ssl,
                                       int enc // Encryption or decryption
 )
 {
-    CXPLAT_TLS * TlsContext = wolfSSL_get_ex_data(Ssl, 0);
+    CXPLAT_TLS * TlsContext = wolfSSL_get_app_data(Ssl);
     QUIC_TICKET_KEY_CONFIG * TicketKey = TlsContext->SecConfig->TicketKey;
 
-    CXPLAT_DBG_ASSERT(TicketKey != NULL);
-    if (TicketKey == NULL) {
+    CXPLAT_DBG_ASSERT(TicketKey != 0);
+    if (TicketKey == 0) {
         return -1;
     }
 
@@ -755,29 +705,43 @@ int CxPlatTlsOnSessionTicketKeyNeeded(WOLFSSL * Ssl,
 
 int CxPlatTlsOnServerSessionTicketGenerated(WOLFSSL * Ssl, void * arg)
 {
-    CXPLAT_TLS * TlsContext = wolfSSL_get_ex_data(Ssl, 0);
-    UNREFERENCED_PARAMETER(TlsContext);
+    puts("TODO CxPlatTlsOnServerSessionTicketGenerated");
     UNREFERENCED_PARAMETER(arg);
+    UNREFERENCED_PARAMETER(Ssl);
+
+    // CXPLAT_TLS * TlsContext = wolfSSL_get_app_data(Ssl);
     return 1;
 }
 
 
-SSL_TICKET_RETURN
-CxPlatTlsOnServerSessionTicketDecrypted(WOLFSSL * Ssl,
-                                        WOLFSSL_SESSION * Session,
-                                        const unsigned char * keyname,
-                                        size_t keyname_length,
-                                        SSL_TICKET_STATUS status,
-                                        void * arg)
+#if 0
+int CxPlatTlsOnServerSessionTicketDecrypted(
+    WOLFSSL * Ssl,
+    byte key_name[WOLFSSL_TICKET_NAME_SZ],
+    byte iv[WOLFSSL_TICKET_IV_SZ],
+    byte mac[WOLFSSL_TICKET_MAC_SZ],
+    int enc,
+    byte * ticket,
+    int inLen,
+    int * outLen,
+    void * userCtx)
 {
-    CXPLAT_TLS * TlsContext = wolfSSL_get_ex_data(Ssl, 0);
-    UNREFERENCED_PARAMETER(keyname);
-    UNREFERENCED_PARAMETER(keyname_length);
-    UNREFERENCED_PARAMETER(arg);
+    puts("TODO CxPlatTlsOnServerSessionTicketDecrypted");
 
-    QuicTraceLogConnVerbose(WolfSslTickedDecrypted, TlsContext->Connection,
-                            "Session ticket decrypted, status %u",
-                            (uint32_t)status);
+    // UNREFERENCED_PARAMETER(ssl);
+    UNREFERENCED_PARAMETER(key_name);
+    UNREFERENCED_PARAMETER(iv);
+    UNREFERENCED_PARAMETER(mac);
+    UNREFERENCED_PARAMETER(enc);
+    UNREFERENCED_PARAMETER(ticket);
+    UNREFERENCED_PARAMETER(inLen);
+    UNREFERENCED_PARAMETER(outLen);
+    UNREFERENCED_PARAMETER(userCtx);
+
+    CXPLAT_TLS * TlsContext = SSL_get_app_data(Ssl);
+
+    QuicTraceLogConnVerbose(OpenSslTickedDecrypted, TlsContext->Connection,
+                            "Session ticket decrypted");
 
     SSL_TICKET_RETURN Result;
     if (status == SSL_TICKET_SUCCESS) {
@@ -788,14 +752,12 @@ CxPlatTlsOnServerSessionTicketDecrypted(WOLFSSL * Ssl,
         Result = SSL_TICKET_RETURN_IGNORE_RENEW;
     }
 
-    UNREFERENCED_PARAMETER(Session);
-#if 0
     uint8_t * Buffer = NULL;
     size_t Length = 0;
     if (Session != NULL &&
         SSL_SESSION_get0_ticket_appdata(Session, (void **)&Buffer, &Length)) {
 
-        QuicTraceLogConnVerbose(WolfSslRecvTicketData, TlsContext->Connection,
+        QuicTraceLogConnVerbose(OpenSslRecvTicketData, TlsContext->Connection,
                                 "Received ticket data, %u bytes",
                                 (uint32_t)Length);
 
@@ -810,10 +772,10 @@ CxPlatTlsOnServerSessionTicketDecrypted(WOLFSSL * Ssl,
             }
         }
     }
-#endif
+
     return Result;
 }
-
+#endif
 
 WOLFSSL_QUIC_METHOD WolfQuicCallbacks = {
     CxPlatTlsSetEncryptionSecretsCallback, CxPlatTlsAddHandshakeDataCallback,
@@ -847,7 +809,7 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
     QUIC_CREDENTIAL_FLAGS CredConfigFlags = CredConfig->Flags;
 
     if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS &&
-        CredConfig->AsyncHandler == NULL) {
+        CredConfig->AsyncHandler == 0) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -885,42 +847,28 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-#ifdef CX_PLATFORM_DARWIN
-    if (((CredConfigFlags &
-          QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) == 0) &&
-        (CredConfigFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT ||
-         CredConfigFlags &
-             QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT ||
-         CredConfigFlags & QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK ||
-         CredConfigFlags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE ||
-         CredConfigFlags & QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL ||
-         CredConfigFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY)) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-#endif
-
-    if (CredConfig->Reserved != NULL) {
+    if (CredConfig->Reserved != 0) {
         return QUIC_STATUS_INVALID_PARAMETER; // Not currently used and
-                                              // should be NULL.
+                                              // should be 0.
     }
 
     if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
-        if (CredConfig->CertificateFile == NULL ||
-            CredConfig->CertificateFile->CertificateFile == NULL ||
-            CredConfig->CertificateFile->PrivateKeyFile == NULL) {
+        if (CredConfig->CertificateFile == 0 ||
+            CredConfig->CertificateFile->CertificateFile == 0 ||
+            CredConfig->CertificateFile->PrivateKeyFile == 0) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     } else if (CredConfig->Type ==
                QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
-        if (CredConfig->CertificateFileProtected == NULL ||
-            CredConfig->CertificateFileProtected->CertificateFile == NULL ||
-            CredConfig->CertificateFileProtected->PrivateKeyFile == NULL ||
-            CredConfig->CertificateFileProtected->PrivateKeyPassword == NULL) {
+        if (CredConfig->CertificateFileProtected == 0 ||
+            CredConfig->CertificateFileProtected->CertificateFile == 0 ||
+            CredConfig->CertificateFileProtected->PrivateKeyFile == 0 ||
+            CredConfig->CertificateFileProtected->PrivateKeyPassword == 0) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
-        if (CredConfig->CertificatePkcs12 == NULL ||
-            CredConfig->CertificatePkcs12->Asn1Blob == NULL ||
+        if (CredConfig->CertificatePkcs12 == 0 ||
+            CredConfig->CertificatePkcs12->Asn1Blob == 0 ||
             CredConfig->CertificatePkcs12->Asn1BlobLength == 0) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
@@ -955,18 +903,16 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
-    CXPLAT_SEC_CONFIG * SecurityConfig = NULL;
-    // X509 * X509Cert = NULL;
-    WOLFSSL_EVP_PKEY * PrivateKey = NULL;
-    char * CipherSuiteString = NULL;
+    CXPLAT_SEC_CONFIG * SecurityConfig = 0;
+    WOLFSSL_X509 * X509Cert = 0;
+    WOLFSSL_EVP_PKEY * PrivateKey = 0;
+    char * CipherSuiteString = 0;
+    WC_PKCS12 * Pkcs12 = 0;
 
-    //
     // Create a security config.
-    //
-
     SecurityConfig =
         CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_SEC_CONFIG), QUIC_POOL_TLS_SECCONF);
-    if (SecurityConfig == NULL) {
+    if (SecurityConfig == 0) {
         QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)",
                        "CXPLAT_SEC_CONFIG", sizeof(CXPLAT_SEC_CONFIG));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -978,27 +924,31 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
     SecurityConfig->Flags = CredConfigFlags;
     SecurityConfig->TlsFlags = TlsCredFlags;
 
-    //
     // Create the a SSL context for the security config.
-    //
-
     SecurityConfig->SSLCtx = wolfSSL_CTX_new(wolfTLSv1_3_method());
-    if (SecurityConfig->SSLCtx == NULL) {
+    if (SecurityConfig->SSLCtx == 0) {
         QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
                        wolfSSL_ERR_get_error(), "wolfSSL_CTX_new failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
-    //
     // Configure the SSL context with the defaults.
-    //
-
-    Ret = wolfSSL_CTX_SetMinVersion(SecurityConfig->SSLCtx, TLS1_3_VERSION);
+    Ret = wolfSSL_CTX_set_min_proto_version(SecurityConfig->SSLCtx,
+                                            TLS1_3_VERSION);
     if (Ret != 1) {
         QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
                        wolfSSL_ERR_get_error(),
                        "wolfSSL_CTX_set_min_proto_version failed");
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
+    }
+
+    Ret = wolfSSL_CTX_UseSessionTicket(SecurityConfig->SSLCtx);
+    if (Ret != 1) {
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
+                       wolfSSL_ERR_get_error(),
+                       "wolfSSL_CTX_UseSessionTicket failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -1015,9 +965,7 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
 
     char * CipherSuites = CXPLAT_TLS_DEFAULT_SSL_CIPHERS;
     if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES) {
-        //
         // Calculate allowed cipher suite string length.
-        //
         uint8_t CipherSuiteStringLength = 0;
         uint8_t AllowedCipherSuitesCount = 0;
         if (CredConfig->AllowedCipherSuites &
@@ -1041,7 +989,7 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
 
         CipherSuiteString = CXPLAT_ALLOC_NONPAGED(
             CipherSuiteStringLength, QUIC_POOL_TLS_CIPHER_SUITE_STRING);
-        if (CipherSuiteString == NULL) {
+        if (CipherSuiteString == 0) {
             QuicTraceEvent(AllocFailure,
                            "Allocation of '%s' failed. (%llu bytes)",
                            "CipherSuiteString", CipherSuiteStringLength);
@@ -1049,8 +997,7 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
             goto Exit;
         }
 
-        //
-        // Order of if-statements matters here because OpenSSL uses the
+        // Order of if-statements matters here because WolfSSL uses the
         // order of cipher suites to indicate preference. Below, we use the
         // default order of preference for TLS 1.3 cipher suites.
         //
@@ -1093,7 +1040,7 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
     if (Ret != 1) {
         QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
                        wolfSSL_ERR_get_error(),
-                       "wolfSSL_CTX_set_ciphersuites failed");
+                       "wolfSSL_CTX_set_cipher_list failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -1104,7 +1051,7 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
         if (Ret != 1) {
             QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
                            wolfSSL_ERR_get_error(),
-                           "SSL_CTX_set_default_verify_paths failed");
+                           "wolfSSL_CTX_set_default_verify_paths failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
@@ -1115,7 +1062,7 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
     if (Ret != 1) {
         QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
                        wolfSSL_ERR_get_error(),
-                       "SSL_CTX_set_quic_method failed");
+                       "wolfSSL_CTX_set_quic_method failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -1136,39 +1083,34 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
             if (Ret != 1) {
                 QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
                                wolfSSL_ERR_get_error(),
-                               "SSL_CTX_set_max_early_data failed");
+                               "wolfSSL_CTX_set_max_early_data failed");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
 
-#if 0
-            Ret = wolfSSL_CTX_set_session_ticket_cb(
-                SecurityConfig->SSLCtx, NULL,
-                CxPlatTlsOnServerSessionTicketDecrypted, NULL);
-            if (Ret != 1) {
-                QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
-                               wolfSSL_ERR_get_error(),
-                               "SSL_CTX_set_session_ticket_cb failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
-#endif
+            // Ret = wolfSSL_CTX_set_TicketEncCb(
+            //     SecurityConfig->SSLCtx,
+            //     CxPlatTlsOnServerSessionTicketDecrypted);
+            // if (Ret != 1) {
+            //     QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
+            //                    wolfSSL_ERR_get_error(),
+            //                    "wolfSSL_CTX_set_TicketEncCb failed");
+            //     Status = QUIC_STATUS_TLS_ERROR;
+            //     goto Exit;
+            // }
         }
 
         Ret = wolfSSL_CTX_set_num_tickets(SecurityConfig->SSLCtx, 0);
         if (Ret != 1) {
             QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
                            wolfSSL_ERR_get_error(),
-                           "SSL_CTX_set_num_tickets failed");
+                           "wolfSSL_CTX_set_num_tickets failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
     }
 
-    //
     // Set the certs.
-    //
-
     if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE ||
         CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
 
@@ -1186,55 +1128,54 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
         if (Ret != 1) {
             QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
                            wolfSSL_ERR_get_error(),
-                           "SSL_CTX_use_PrivateKey_file failed");
+                           "wolfSSL_CTX_use_PrivateKey_file failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
 
-        Ret = wolfSSL_CTX_use_certificate_chain_file(
+        Ret = wolfSSL_CTX_use_certificate_file(
             SecurityConfig->SSLCtx,
-            CredConfig->CertificateFile->CertificateFile);
+            CredConfig->CertificateFile->CertificateFile, SSL_FILETYPE_PEM);
         if (Ret != 1) {
             QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
                            wolfSSL_ERR_get_error(),
-                           "SSL_CTX_use_certificate_chain_file failed");
+                           "wolfSSL_CTX_use_certificate_file failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
     } else if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
-#if 0
-        BIO * Bio = BIO_new(BIO_s_mem());
-        PKCS12 * Pkcs12 = NULL;
-        const char * Password = NULL;
+        puts("TODO CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE");
+
+        // BIO * Bio = BIO_new(BIO_s_mem());
+        const char * Password = 0;
         char PasswordBuffer[PFX_PASSWORD_LENGTH];
 
-        if (!Bio) {
+        Pkcs12 = wc_PKCS12_new();
+        if (!Pkcs12) {
             QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
-                           wolfSSL_ERR_get_error(), "BIO_new failed");
+                           wolfSSL_ERR_get_error(), "wc_PKCS12_new failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
 
-        BIO_set_mem_eof_return(Bio, 0);
+        // BIO_set_mem_eof_return(Bio, 0);
 
         if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12) {
             Password = CredConfig->CertificatePkcs12->PrivateKeyPassword;
-            Ret = BIO_write(Bio, CredConfig->CertificatePkcs12->Asn1Blob,
-                            CredConfig->CertificatePkcs12->Asn1BlobLength);
-            if (Ret < 0) {
-                QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
-                               wolfSSL_ERR_get_error(), "BIO_write failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
+            // Ret = BIO_write(Bio, CredConfig->CertificatePkcs12->Asn1Blob,
+            //                 CredConfig->CertificatePkcs12->Asn1BlobLength);
+            // if (Ret < 0) {
+            //     QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
+            //                    wolfSSL_ERR_get_error(), "BIO_write failed");
+            //     Status = QUIC_STATUS_TLS_ERROR;
+            //     goto Exit;
+            // }
         } else {
-            uint8_t * PfxBlob = NULL;
+            uint8_t * PfxBlob = 0;
             uint32_t PfxSize = 0;
             CxPlatRandom(sizeof(PasswordBuffer), PasswordBuffer);
 
-            //
             // Fixup password to printable characters
-            //
             for (uint32_t idx = 0; idx < sizeof(PasswordBuffer); ++idx) {
                 PasswordBuffer[idx] = ((uint8_t)PasswordBuffer[idx] % 94) + 32;
             }
@@ -1247,44 +1188,57 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
                 goto Exit;
             }
 
-            Ret = BIO_write(Bio, PfxBlob, PfxSize);
-            CXPLAT_FREE(PfxBlob, QUIC_POOL_TLS_PFX);
-            if (Ret < 0) {
-                QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
-                               wolfSSL_ERR_get_error(), "BIO_write failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
+            // Ret = BIO_write(Bio, PfxBlob, PfxSize);
+            // CXPLAT_FREE(PfxBlob, QUIC_POOL_TLS_PFX);
+            // if (Ret < 0) {
+            //     QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
+            //                    wolfSSL_ERR_get_error(), "BIO_write failed");
+            //     Status = QUIC_STATUS_TLS_ERROR;
+            //     goto Exit;
+            // }
         }
 
-        Pkcs12 = d2i_PKCS12_bio(Bio, NULL);
-        BIO_free(Bio);
-        Bio = NULL;
-
-        if (!Pkcs12) {
+        wolfSSL_Debugging_ON();
+        puts((char *)CredConfig->CertificatePkcs12->Asn1Blob);
+        DerBuffer * der = 0;
+        int keyFormat = 0;
+        Ret = wc_PemToDer(CredConfig->CertificatePkcs12->Asn1Blob,
+                          CredConfig->CertificatePkcs12->Asn1BlobLength,
+                          CERT_TYPE, &der, 0, 0, &keyFormat);
+        if (Ret) {
             QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
-                           wolfSSL_ERR_get_error(), "d2i_PKCS12_bio failed");
+                           wolfSSL_ERR_get_error(), "wc_PemToDer failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
 
-        STACK_OF(X509) * CaCertificates = NULL;
-        Ret = PKCS12_parse(Pkcs12, Password, &PrivateKey, &X509Cert,
-                           &CaCertificates);
+        puts((char *)der->buffer);
+        Ret = wc_d2i_PKCS12(der->buffer, der->length, Pkcs12);
+        // BIO_free(Bio);
+        // Bio = 0;
+
+        wolfSSL_Debugging_OFF();
+        if (Ret) {
+            QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", Ret,
+                           wc_GetErrorString(Ret));
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        STACK_OF(X509) * CaCertificates = 0;
+        Ret = wolfSSL_PKCS12_parse(Pkcs12, Password, &PrivateKey, &X509Cert,
+                                   &CaCertificates);
         if (CaCertificates) {
             X509 * CaCert;
-            while ((CaCert = sk_X509_pop(CaCertificates)) != NULL) {
-                //
+            while ((CaCert = sk_X509_pop(CaCertificates)) != 0) {
                 // This transfers ownership to SSLCtx and CaCert does not need
                 // to be freed.
-                //
-                wolfSSL_CTX_add_extra_chain_cert(SecurityConfig->SSLCtx, CaCert);
+                wolfSSL_CTX_add_extra_chain_cert(SecurityConfig->SSLCtx,
+                                                 CaCert);
             }
-            sk_X509_free(CaCertificates);
+            wolfSSL_sk_X509_free(CaCertificates);
         }
-        if (Pkcs12) {
-            PKCS12_free(Pkcs12);
-        }
+
         if (Password == PasswordBuffer) {
             CxPlatZeroMemory(PasswordBuffer, sizeof(PasswordBuffer));
         }
@@ -1300,19 +1254,20 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
         if (Ret != 1) {
             QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
                            wolfSSL_ERR_get_error(),
-                           "SSL_CTX_use_PrivateKey_file failed");
+                           "wolfSSL_CTX_use_PrivateKey failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
 
-        Ret = wolfSSL_CTX_use_certificate(SecurityConfig->SSLCtx, X509Cert);
+        Ret =
+            (int)wolfSSL_CTX_use_certificate(SecurityConfig->SSLCtx, X509Cert);
         if (Ret != 1) {
             QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
-                           wolfSSL_ERR_get_error(), "SSL_CTX_use_certificate failed");
+                           wolfSSL_ERR_get_error(),
+                           "wolfSSL_CTX_use_certificate failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
-#endif
     }
 
     if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
@@ -1320,16 +1275,15 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
         if (Ret != 1) {
             QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.",
                            wolfSSL_ERR_get_error(),
-                           "SSL_CTX_check_private_key failed");
+                           "wolfSSL_CTX_check_private_key failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
     }
 
     if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_CLIENT) {
-        wolfSSL_CTX_set_cert_verify_callback(
-            SecurityConfig->SSLCtx, CxPlatTlsCertificateVerifyCallback, NULL);
-        wolfSSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
+        wolfSSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER,
+                               CxPlatTlsCertificateVerifyCallback);
         if (!(CredConfigFlags &
               (QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
                QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION))) {
@@ -1337,32 +1291,24 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
                                          CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
         }
 
-        //
         // TODO - Support additional certificate validation parameters, such
         // as the location of the trusted root CAs
         // (SSL_CTX_load_verify_locations)?
-        //
 
     } else {
         wolfSSL_CTX_set_options(
             SecurityConfig->SSLCtx,
             (WOLFSSL_OP_ALL & ~WOLFSSL_OP_DONT_INSERT_EMPTY_FRAGMENTS) |
                 WOLFSSL_OP_SINGLE_ECDH_USE |
-                WOLFSSL_OP_CIPHER_SERVER_PREFERENCE |
-                0 /*WOLFSSL_OP_NO_ANTI_REPLAY*/);
-#if 0
-        wolfSSL_CTX_clear_options(SecurityConfig->SSLCtx,
-                                  WOLFSSL_OP_ENABLE_MIDDLEBOX_COMPAT);
-#endif
+                WOLFSSL_OP_CIPHER_SERVER_PREFERENCE);
         wolfSSL_CTX_set_mode(SecurityConfig->SSLCtx, SSL_MODE_RELEASE_BUFFERS);
 
         if (CredConfigFlags &
                 QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED ||
             CredConfigFlags &
                 QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
-            wolfSSL_CTX_set_cert_verify_callback(
-                SecurityConfig->SSLCtx, CxPlatTlsCertificateVerifyCallback,
-                NULL);
+            wolfSSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER,
+                                   CxPlatTlsCertificateVerifyCallback);
         }
 
         if (CredConfigFlags &
@@ -1378,25 +1324,23 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
                    QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION))) {
                 VerifyMode |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
             }
-            wolfSSL_CTX_set_verify(SecurityConfig->SSLCtx, VerifyMode, NULL);
+            wolfSSL_CTX_set_verify(SecurityConfig->SSLCtx, VerifyMode, 0);
         }
 
         wolfSSL_CTX_set_alpn_select_cb(SecurityConfig->SSLCtx,
-                                       CxPlatTlsAlpnSelectCallback, NULL);
+                                       CxPlatTlsAlpnSelectCallback, 0);
 
         wolfSSL_CTX_set_max_early_data(SecurityConfig->SSLCtx, UINT32_MAX);
 #if 0
         wolfSSL_CTX_set_client_hello_cb(SecurityConfig->SSLCtx,
-                                        CxPlatTlsClientHelloCallback, NULL);
+                                        CxPlatTlsClientHelloCallback, 0);
 #endif
     }
 
-    //
     // Invoke completion inline.
-    //
 
     CompletionHandler(CredConfig, Context, Status, SecurityConfig);
-    SecurityConfig = NULL;
+    SecurityConfig = 0;
 
     if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
         Status = QUIC_STATUS_PENDING;
@@ -1405,22 +1349,23 @@ QUIC_STATUS CxPlatTlsSecConfigCreate(
     }
 
 Exit:
-
-    if (SecurityConfig != NULL) {
+    if (SecurityConfig != 0) {
         CxPlatTlsSecConfigDelete(SecurityConfig);
     }
 
-    if (CipherSuiteString != NULL) {
+    if (CipherSuiteString != 0) {
         CxPlatFree(CipherSuiteString, QUIC_POOL_TLS_CIPHER_SUITE_STRING);
     }
 
-#if 0
-    if (X509Cert != NULL) {
+    if (X509Cert != 0) {
         X509_free(X509Cert);
     }
-#endif
 
-    if (PrivateKey != NULL) {
+    if (Pkcs12 != 0) {
+        wc_PKCS12_free(Pkcs12);
+    }
+
+    if (PrivateKey != 0) {
         wolfSSL_EVP_PKEY_free(PrivateKey);
     }
 
@@ -1430,11 +1375,11 @@ Exit:
 
 void CxPlatTlsSecConfigDelete(CXPLAT_SEC_CONFIG * SecurityConfig)
 {
-    if (SecurityConfig->SSLCtx != NULL) {
+    if (SecurityConfig->SSLCtx != 0) {
         wolfSSL_CTX_free(SecurityConfig->SSLCtx);
     }
 
-    if (SecurityConfig->TicketKey != NULL) {
+    if (SecurityConfig->TicketKey != 0) {
         CXPLAT_FREE(SecurityConfig->TicketKey, QUIC_POOL_TLS_TICKET_KEY);
     }
 
@@ -1453,10 +1398,10 @@ QUIC_STATUS CxPlatTlsSecConfigSetTicketKeys(CXPLAT_SEC_CONFIG * SecurityConfig,
         return QUIC_STATUS_NOT_SUPPORTED;
     }
 
-    if (SecurityConfig->TicketKey == NULL) {
+    if (SecurityConfig->TicketKey == 0) {
         SecurityConfig->TicketKey = CXPLAT_ALLOC_NONPAGED(
             sizeof(QUIC_TICKET_KEY_CONFIG), QUIC_POOL_TLS_TICKET_KEY);
-        if (SecurityConfig->TicketKey == NULL) {
+        if (SecurityConfig->TicketKey == 0) {
             QuicTraceEvent(
                 AllocFailure, "Allocation of '%s' failed. (%llu bytes)",
                 "QUIC_TICKET_KEY_CONFIG", sizeof(QUIC_TICKET_KEY_CONFIG));
@@ -1479,7 +1424,7 @@ QUIC_STATUS CxPlatTlsInitialize(const CXPLAT_TLS_CONFIG * Config,
                                 CXPLAT_TLS ** NewTlsContext)
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    CXPLAT_TLS * TlsContext = NULL;
+    CXPLAT_TLS * TlsContext = 0;
     uint16_t ServerNameLength = 0;
     UNREFERENCED_PARAMETER(State);
 
@@ -1491,7 +1436,7 @@ QUIC_STATUS CxPlatTlsInitialize(const CXPLAT_TLS_CONFIG * Config,
     CXPLAT_DBG_ASSERT(Config->HkdfLabels);
 
     TlsContext = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_TLS), QUIC_POOL_TLS_CTX);
-    if (TlsContext == NULL) {
+    if (TlsContext == 0) {
         QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)",
                        "CXPLAT_TLS", sizeof(CXPLAT_TLS));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -1514,7 +1459,7 @@ QUIC_STATUS CxPlatTlsInitialize(const CXPLAT_TLS_CONFIG * Config,
 
     if (!Config->IsServer) {
 
-        if (Config->ServerName != NULL) {
+        if (Config->ServerName != 0) {
 
             ServerNameLength =
                 (uint16_t)strnlen(Config->ServerName, QUIC_MAX_SNI_LENGTH);
@@ -1527,7 +1472,7 @@ QUIC_STATUS CxPlatTlsInitialize(const CXPLAT_TLS_CONFIG * Config,
 
             TlsContext->SNI =
                 CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_TLS_SNI);
-            if (TlsContext->SNI == NULL) {
+            if (TlsContext->SNI == 0) {
                 QuicTraceEvent(AllocFailure,
                                "Allocation of '%s' failed. (%llu bytes)", "SNI",
                                ServerNameLength + 1);
@@ -1540,12 +1485,9 @@ QUIC_STATUS CxPlatTlsInitialize(const CXPLAT_TLS_CONFIG * Config,
         }
     }
 
-    //
     // Create a SSL object for the connection.
-    //
-
     TlsContext->Ssl = wolfSSL_new(Config->SecConfig->SSLCtx);
-    if (TlsContext->Ssl == NULL) {
+    if (TlsContext->Ssl == 0) {
         QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.",
                        TlsContext->Connection, "wolfSSL_new failed");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -1567,39 +1509,40 @@ QUIC_STATUS CxPlatTlsInitialize(const CXPLAT_TLS_CONFIG * Config,
           CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION)) {
 
         if (Config->ResumptionTicketLength != 0) {
-            CXPLAT_DBG_ASSERT(Config->ResumptionTicketBuffer != NULL);
+            CXPLAT_DBG_ASSERT(Config->ResumptionTicketBuffer != 0);
 
             QuicTraceLogConnInfo(WolfSslOnSetTicket, TlsContext->Connection,
-                                 "Setting session ticket, %u bytes",
+                                 "TODO Setting session ticket, %u bytes",
                                  Config->ResumptionTicketLength);
+            wolfSSL_Debugging_ON();
 
-#if 0
-            BIO * Bio = BIO_new_mem_buf(Config->ResumptionTicketBuffer,
-                                        (int)Config->ResumptionTicketLength);
-            if (Bio) {
-                SSL_SESSION * Session =
-                    PEM_read_bio_SSL_SESSION(Bio, NULL, 0, NULL);
-                if (Session) {
-                    if (!SSL_set_session(TlsContext->Ssl, Session)) {
-                        QuicTraceEvent(
-                            TlsErrorStatus, "[ tls][%p] ERROR, %u, %s.",
-                            TlsContext->Connection, wolfSSL_ERR_get_error(),
-                            "SSL_set_session failed");
-                    }
-                    SSL_SESSION_free(Session);
-                } else {
+            const unsigned char * NewBuffer; // = CXPLAT_ALLOC_NONPAGED(
+            //     Config->ResumptionTicketLength, QUIC_POOL_TLS_BUFFER);
+            // if (NewBuffer == 0) {
+            //     QuicTraceEvent(
+            //         AllocFailure, "Allocation of '%s' failed. (%llu bytes)",
+            //         "New ticket buffer", Config->ResumptionTicketLength);
+            //     Status = QUIC_STATUS_OUT_OF_MEMORY;
+            //     goto Exit;
+            // }
+
+            WOLFSSL_SESSION * Session = wolfSSL_d2i_SSL_SESSION(
+                0, &NewBuffer, Config->ResumptionTicketLength);
+
+            if (Session) {
+                if (!wolfSSL_set_session(TlsContext->Ssl, Session)) {
                     QuicTraceEvent(TlsErrorStatus, "[ tls][%p] ERROR, %u, %s.",
                                    TlsContext->Connection,
                                    wolfSSL_ERR_get_error(),
-                                   "PEM_read_bio_SSL_SESSION failed");
+                                   "wolfSSL_set_session failed");
                 }
-                BIO_free(Bio);
+                wolfSSL_SESSION_free(Session);
             } else {
                 QuicTraceEvent(TlsErrorStatus, "[ tls][%p] ERROR, %u, %s.",
                                TlsContext->Connection, wolfSSL_ERR_get_error(),
-                               "BIO_new_mem_buf failed");
+                               "wolfSSL_d2i_SSL_SESSION failed");
             }
-#endif
+            // CXPLAT_FREE(NewBuffer, QUIC_POOL_TLS_BUFFER);
         }
 
         if (Config->IsServer || (Config->ResumptionTicketLength != 0)) {
@@ -1628,13 +1571,12 @@ QUIC_STATUS CxPlatTlsInitialize(const CXPLAT_TLS_CONFIG * Config,
     }
 
     *NewTlsContext = TlsContext;
-    TlsContext = NULL;
+    TlsContext = 0;
 
 Exit:
-
-    if (TlsContext != NULL) {
+    if (TlsContext != 0) {
         CxPlatTlsUninitialize(TlsContext);
-        TlsContext = NULL;
+        TlsContext = 0;
     }
 
     return Status;
@@ -1645,18 +1587,18 @@ void CxPlatTlsUninitialize(CXPLAT_TLS * TlsContext)
 {
     wolfSSL_Cleanup();
 
-    if (TlsContext != NULL) {
+    if (TlsContext != 0) {
         QuicTraceLogConnVerbose(WolfSslContextCleaningUp,
                                 TlsContext->Connection, "Cleaning up");
 
-        if (TlsContext->SNI != NULL) {
+        if (TlsContext->SNI != 0) {
             CXPLAT_FREE(TlsContext->SNI, QUIC_POOL_TLS_SNI);
-            TlsContext->SNI = NULL;
+            TlsContext->SNI = 0;
         }
 
-        if (TlsContext->Ssl != NULL) {
+        if (TlsContext->Ssl != 0) {
             wolfSSL_free(TlsContext->Ssl);
-            TlsContext->Ssl = NULL;
+            TlsContext->Ssl = 0;
         }
 
         CXPLAT_FREE(TlsContext, QUIC_POOL_TLS_CTX);
@@ -1677,7 +1619,7 @@ CXPLAT_TLS_RESULT_FLAGS CxPlatTlsProcessData(CXPLAT_TLS * TlsContext,
                                              uint32_t * BufferLength,
                                              CXPLAT_TLS_PROCESS_STATE * State)
 {
-    CXPLAT_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
+    CXPLAT_DBG_ASSERT(Buffer != 0 || *BufferLength == 0);
 
     TlsContext->State = State;
     TlsContext->ResultFlags = 0;
@@ -1686,37 +1628,38 @@ CXPLAT_TLS_RESULT_FLAGS CxPlatTlsProcessData(CXPLAT_TLS * TlsContext,
         QuicTraceLogConnVerbose(WolfSslSendTicketData, TlsContext->Connection,
                                 "Sending ticket data, %u bytes", *BufferLength);
 
-        SSL_SESSION * Session = SSL_get_session(TlsContext->Ssl);
-        if (Session == NULL) {
+        WOLFSSL_SESSION * Session = wolfSSL_get_session(TlsContext->Ssl);
+        if (Session == 0) {
             QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.",
-                           TlsContext->Connection, "SSL_get_session failed");
-            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-            goto Exit;
-        }
-#if 0
-        if (!SSL_SESSION_set1_ticket_appdata(Session, Buffer, *BufferLength)) {
-            QuicTraceEvent(TlsErrorStatus, "[ tls][%p] ERROR, %u, %s.",
-                           TlsContext->Connection, wolfSSL_ERR_get_error(),
-                           "SSL_SESSION_set1_ticket_appdata failed");
+                           TlsContext->Connection,
+                           "wolfSSL_get_session failed");
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
         }
 
-        if (!wolfSSL_new_session_ticket(TlsContext->Ssl)) {
+        if (!wolfSSL_set_SessionTicket(TlsContext->Ssl, Buffer,
+                                       *BufferLength)) {
             QuicTraceEvent(TlsErrorStatus, "[ tls][%p] ERROR, %u, %s.",
                            TlsContext->Connection, wolfSSL_ERR_get_error(),
-                           "SSL_new_session_ticket failed");
+                           "wolfSSL_set_SessionTicket failed");
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
         }
-#endif
 
-        int Ret = SSL_do_handshake(TlsContext->Ssl);
+        if (!wolfSSL_send_SessionTicket(TlsContext->Ssl)) {
+            QuicTraceEvent(TlsErrorStatus, "[ tls][%p] ERROR, %u, %s.",
+                           TlsContext->Connection, wolfSSL_ERR_get_error(),
+                           "wolfSSL_send_SessionTicket failed");
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+            goto Exit;
+        }
+
+        int Ret = wolfSSL_SSL_do_handshake(TlsContext->Ssl);
         if (Ret != 1) {
             QuicTraceEvent(TlsErrorStatus, "[ tls][%p] ERROR, %u, %s.",
                            TlsContext->Connection,
-                           SSL_get_error(TlsContext->Ssl, Ret),
-                           "SSL_do_handshake failed");
+                           wolfSSL_get_error(TlsContext->Ssl, Ret),
+                           "wolfSSL_SSL_do_handshake failed");
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
         }
@@ -1735,31 +1678,29 @@ CXPLAT_TLS_RESULT_FLAGS CxPlatTlsProcessData(CXPLAT_TLS * TlsContext,
             char buf[256];
             QuicTraceLogConnError(
                 WolfSslQuicDataErrorStr, TlsContext->Connection,
-                "SSL_provide_quic_data failed: %s",
-                ERR_error_string(wolfSSL_ERR_get_error(), buf));
+                "wolfSSL_provide_quic_data failed: %s",
+                wolfSSL_ERR_error_string(wolfSSL_ERR_get_error(), buf));
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
         }
     }
 
     if (!State->HandshakeComplete) {
-        int Ret = SSL_do_handshake(TlsContext->Ssl);
+        int Ret = wolfSSL_SSL_do_handshake(TlsContext->Ssl);
         if (Ret <= 0) {
-            int Err = SSL_get_error(TlsContext->Ssl, Ret);
+            int Err = wolfSSL_get_error(TlsContext->Ssl, Ret);
             switch (Err) {
-            case SSL_ERROR_WANT_READ:
-            case SSL_ERROR_WANT_WRITE:
-                //
+            case WOLFSSL_ERROR_WANT_READ:
+            case WOLFSSL_ERROR_WANT_WRITE:
                 // Best effort to get the server's transport params as early as
                 // possible.
-                //
                 if (!TlsContext->IsServer &&
                     TlsContext->PeerTPReceived == FALSE) {
                     const uint8_t * TransportParams;
                     size_t TransportParamLen;
                     wolfSSL_get_peer_quic_transport_params(
                         TlsContext->Ssl, &TransportParams, &TransportParamLen);
-                    if (TransportParams != NULL && TransportParamLen != 0) {
+                    if (TransportParams != 0 && TransportParamLen != 0) {
                         TlsContext->PeerTPReceived = TRUE;
                         if (!TlsContext->SecConfig->Callbacks.ReceiveTP(
                                 TlsContext->Connection,
@@ -1771,25 +1712,15 @@ CXPLAT_TLS_RESULT_FLAGS CxPlatTlsProcessData(CXPLAT_TLS * TlsContext,
                 }
                 goto Exit;
 
-            case SSL_ERROR_SSL: {
+            case WOLFSSL_ERROR_SSL: {
                 char buf[256];
                 const char * file;
                 int line;
-#ifdef IS_OPENSSL_3
-                ERR_error_string_n(
-                    wolfSSL_ERR_get_error_all(&file, &line, NULL, NULL, NULL),
-                    buf, sizeof(buf));
-#else
-                ERR_error_string_n(wolfSSL_ERR_get_error_line(&file, &line),
-                                   buf, sizeof(buf));
-#endif
+                wolfSSL_ERR_error_string_n(
+                    wolfSSL_ERR_get_error_line(&file, &line), buf, sizeof(buf));
                 QuicTraceLogConnError(
                     WolfSslHandshakeErrorStr, TlsContext->Connection,
-                    "TLS handshake error: %s, file:%s:%d", buf,
-                    (strlen(file) > WolfSslFilePrefixLength
-                         ? file + WolfSslFilePrefixLength
-                         : file),
-                    line);
+                    "TLS handshake error: %s, file:%s:%d", buf, file, line);
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
             }
@@ -1806,8 +1737,8 @@ CXPLAT_TLS_RESULT_FLAGS CxPlatTlsProcessData(CXPLAT_TLS * TlsContext,
         if (!TlsContext->IsServer) {
             const uint8_t * NegotiatedAlpn;
             uint32_t NegotiatedAlpnLength;
-            SSL_get0_alpn_selected(TlsContext->Ssl, &NegotiatedAlpn,
-                                   &NegotiatedAlpnLength);
+            wolfSSL_get0_alpn_selected(TlsContext->Ssl, &NegotiatedAlpn,
+                                       &NegotiatedAlpnLength);
             if (NegotiatedAlpnLength == 0) {
                 QuicTraceLogConnError(WolfSslAlpnNegotiationFailure,
                                       TlsContext->Connection,
@@ -1825,7 +1756,7 @@ CXPLAT_TLS_RESULT_FLAGS CxPlatTlsProcessData(CXPLAT_TLS * TlsContext,
             TlsContext->State->NegotiatedAlpn = CxPlatTlsAlpnFindInList(
                 TlsContext->AlpnBufferLength, TlsContext->AlpnBuffer,
                 (uint8_t)NegotiatedAlpnLength, NegotiatedAlpn);
-            if (TlsContext->State->NegotiatedAlpn == NULL) {
+            if (TlsContext->State->NegotiatedAlpn == 0) {
                 QuicTraceLogConnError(WolfSslNoMatchingAlpn,
                                       TlsContext->Connection,
                                       "Failed to find a matching ALPN");
@@ -1846,10 +1777,10 @@ CXPLAT_TLS_RESULT_FLAGS CxPlatTlsProcessData(CXPLAT_TLS * TlsContext,
                     : QUIC_STATUS_SUCCESS;
 
             if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
-                    TlsContext->Connection, NULL, NULL, 0, ValidationResult)) {
+                    TlsContext->Connection, 0, 0, 0, ValidationResult)) {
                 QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.",
                                TlsContext->Connection,
-                               "Indicate null certificate received failed");
+                               "Indicate 0 certificate received failed");
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 TlsContext->State->AlertCode =
                     CXPLAT_TLS_ALERT_CODE_REQUIRED_CERTIFICATE;
@@ -1860,19 +1791,20 @@ CXPLAT_TLS_RESULT_FLAGS CxPlatTlsProcessData(CXPLAT_TLS * TlsContext,
         QuicTraceLogConnInfo(WolfSslHandshakeComplete, TlsContext->Connection,
                              "TLS Handshake complete");
         State->HandshakeComplete = TRUE;
-        if (SSL_session_reused(TlsContext->Ssl)) {
+        if (wolfSSL_session_reused(TlsContext->Ssl)) {
             QuicTraceLogConnInfo(WolfSslHandshakeResumed,
                                  TlsContext->Connection,
                                  "TLS Handshake resumed");
             State->SessionResumed = TRUE;
         }
         if (!TlsContext->IsServer) {
-            int EarlyDataStatus = SSL_get_early_data_status(TlsContext->Ssl);
-            if (EarlyDataStatus == SSL_EARLY_DATA_ACCEPTED) {
+            int EarlyDataStatus =
+                wolfSSL_get_early_data_status(TlsContext->Ssl);
+            if (EarlyDataStatus == WOLFSSL_EARLY_DATA_ACCEPTED) {
                 State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_ACCEPTED;
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT;
 
-            } else if (EarlyDataStatus == SSL_EARLY_DATA_REJECTED) {
+            } else if (EarlyDataStatus == WOLFSSL_EARLY_DATA_REJECTED) {
                 State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_REJECTED;
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_REJECT;
             }
@@ -1890,7 +1822,7 @@ CXPLAT_TLS_RESULT_FLAGS CxPlatTlsProcessData(CXPLAT_TLS * TlsContext,
             size_t TransportParamLen;
             wolfSSL_get_peer_quic_transport_params(
                 TlsContext->Ssl, &TransportParams, &TransportParamLen);
-            if (TransportParams == NULL || TransportParamLen == 0) {
+            if (TransportParams == 0 || TransportParamLen == 0) {
                 QuicTraceLogConnError(WolfSslMissingTransportParameters,
                                       TlsContext->Connection,
                                       "No transport parameters received");
@@ -1910,7 +1842,7 @@ CXPLAT_TLS_RESULT_FLAGS CxPlatTlsProcessData(CXPLAT_TLS * TlsContext,
         if (wolfSSL_process_quic_post_handshake(TlsContext->Ssl) != 1) {
             QuicTraceEvent(TlsErrorStatus, "[ tls][%p] ERROR, %u, %s.",
                            TlsContext->Connection, wolfSSL_ERR_get_error(),
-                           "SSL_process_quic_post_handshake failed");
+                           "wolfSSL_process_quic_post_handshake failed");
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
         }
@@ -1919,7 +1851,7 @@ CXPLAT_TLS_RESULT_FLAGS CxPlatTlsProcessData(CXPLAT_TLS * TlsContext,
 Exit:
 
     if (!(TlsContext->ResultFlags & CXPLAT_TLS_RESULT_ERROR)) {
-        if (State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE] != NULL &&
+        if (State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE] != 0 &&
             State->BufferOffsetHandshake == 0) {
             State->BufferOffsetHandshake = State->BufferTotalLength;
             QuicTraceLogConnInfo(WolfSslHandshakeDataStart,
@@ -1927,7 +1859,7 @@ Exit:
                                  "Writing Handshake data starts at %u",
                                  State->BufferOffsetHandshake);
         }
-        if (State->WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL &&
+        if (State->WriteKeys[QUIC_PACKET_KEY_1_RTT] != 0 &&
             State->BufferOffset1Rtt == 0) {
             State->BufferOffset1Rtt = State->BufferTotalLength;
             QuicTraceLogConnInfo(WolfSsl1RttDataStart, TlsContext->Connection,
@@ -1983,11 +1915,9 @@ QUIC_STATUS CxPlatTlsParamSet(CXPLAT_TLS * SecConfig,
 
 static QUIC_STATUS CxPlatMapCipherSuite(QUIC_HANDSHAKE_INFO * HandshakeInfo)
 {
-    //
     // Mappings taken from the following .NET definitions.
     // https://github.com/dotnet/runtime/blob/69425a7e6198ff78131ad64f1aa3fc28202bfde8/src/libraries/Native/Unix/System.Security.Cryptography.Native/pal_ssl.c
     // https://github.com/dotnet/runtime/blob/1d9e50cb4735df46d3de0cee5791e97295eaf588/src/libraries/System.Net.Security/src/System/Net/Security/TlsCipherSuiteData.Lookup.cs
-    //
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     HandshakeInfo->KeyExchangeAlgorithm = QUIC_KEY_EXCHANGE_ALGORITHM_NONE;
@@ -2044,7 +1974,7 @@ QUIC_STATUS CxPlatTlsParamGet(CXPLAT_TLS * TlsContext,
             break;
         }
 
-        if (Buffer == NULL) {
+        if (Buffer == 0) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -2055,7 +1985,7 @@ QUIC_STATUS CxPlatTlsParamGet(CXPLAT_TLS * TlsContext,
 
         const WOLFSSL_CIPHER * Cipher =
             wolfSSL_get_current_cipher(TlsContext->Ssl);
-        if (Cipher == NULL) {
+        if (Cipher == 0) {
             QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.",
                            TlsContext->Connection,
                            "Unable to get cipher suite");
@@ -2069,7 +1999,7 @@ QUIC_STATUS CxPlatTlsParamGet(CXPLAT_TLS * TlsContext,
 
     case QUIC_PARAM_TLS_NEGOTIATED_ALPN: {
 
-        if (Buffer == NULL) {
+        if (Buffer == 0) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }

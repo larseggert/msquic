@@ -352,6 +352,11 @@ if(QUIC_TLS STREQUAL "openssl")
     list(APPEND QUIC_COMMON_DEFINES QUIC_TEST_OPENSSL_FLAGS=1)
 endif()
 
+if(QUIC_TLS STREQUAL "wolfssl")
+    message(STATUS "Enabling WOLFssl configuration tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_TEST_OPENSSL_FLAGS=1)
+endif()
+
 if(QUIC_ENABLE_LOGGING)
     if (QUIC_LOGGING_TYPE STREQUAL "etw")
         if (WIN32)
